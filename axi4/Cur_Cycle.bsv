@@ -1,4 +1,5 @@
 /*
+see license: https://gitlab.com/incoresemi/uncore/fabrics/blob/master/LICENSE
 Copyright (c) 2013, IIT Madras
 All rights reserved.
 
