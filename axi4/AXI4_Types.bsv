@@ -126,12 +126,6 @@ function Bool fn_addr_is_aligned (Bit #(wd_addr) addr, AXI4_Size size);
 	   || ((size == axsize_128) && (addr [6:0] == 7'b0)));
 endfunction:fn_addr_is_aligned
 
-// Function to check address-alignment with minimal code
-// Can be reduced. addr[size-1:0] == 0
-function Bool fn_addr_is_aligned (Bit #(wd_addr) addr, AXI4_Size size);
-  return ( size == axsize_1 || addr[size-1:0] == 0 );
-endfunction:fn_addr_is_aligned
-
 // ----------------------------------------------------------------
 // These are the signal-level interfaces for an AXI4 master.
 // The (*..*) attributes ensure that when bsc compiles this to Verilog,
@@ -775,7 +769,7 @@ interface AXI4_Buffer_IFC  #(numeric type wd_id,
  endinterface:AXI4_Buffer_IFC
 
 // ----------------------------------------------------------------
-module mkAXI4_Buffer#( (AXI4_Buffer_IFC #(wd_id, wd_addr, wd_data, wd_user));
+module mkAXI4_Buffer (AXI4_Buffer_IFC #(wd_id, wd_addr, wd_data, wd_user));
 
    FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkFIFOF;
    FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkFIFOF;
@@ -886,10 +880,10 @@ module mkAXI4_Master_Xactor #( parameter Integer wr_req_depth,
   // These FIFOs are guarded on BSV side, unguarded on AXI side
   FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (guarded, unguarded, wr_req_depth);
   FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (guarded, unguarded, wr_req_depth);
-  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (guarded, unguarded, wr_req_depth);
+  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (guarded, unguarded, rd_req_depth);
 
   FIFOF #(AXI4_Wr_Resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (unguarded, guarded, wr_resp_depth);
-  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (unguarded, guarded, wr_resp_depth);
+  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (unguarded, guarded, rd_resp_depth);
 
   // ----------------------------------------------------------------
   // INTERFACE
@@ -1166,17 +1160,17 @@ module mkAXI4_Slave_Xactor #( parameter Integer wr_req_depth,
                               parameter Integer rd_req_depth,
                               parameter Integer wr_resp_depth,
                               parameter Integer rd_resp_depth )
-                            (AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, wd_user))
+                            (AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, wd_user));
   Bool unguarded = True;
   Bool guarded   = False;
 
   // These FIFOs are guarded on BSV side, unguarded on AXI side
-  FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGFIFOF (unguarded, guarded, wr_req_depth);
-  FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkGFIFOF (unguarded, guarded, wr_req_depth);
-  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGFIFOF (unguarded, guarded, wr_req_depth);
+  FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (unguarded, guarded, wr_req_depth);
+  FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (unguarded, guarded, wr_req_depth);
+  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (unguarded, guarded, rd_req_depth);
 
-  FIFOF #(AXI4_Wr_Resp #(wd_id, wd_user))           f_wr_resp <- mkGFIFOF (guarded, unguarded, wr_resp_depth);
-  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGFIFOF (guarded, unguarded, wr_resp_depth);
+  FIFOF #(AXI4_Wr_Resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (guarded, unguarded, wr_resp_depth);
+  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (guarded, unguarded, rd_resp_depth);
 
   // ----------------------------------------------------------------
   // INTERFACE
@@ -1465,7 +1459,7 @@ module mkAXI4_Slave_Xactor_2 (AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, w
 endmodule: mkAXI4_Slave_Xactor_2
 
 typedef enum {Idle, Burst} Err_State deriving(Eq, Bits, FShow);
-module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
+module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
 
   AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, wd_user) s_xactor <- mkAXI4_Slave_Xactor_2();
 
@@ -1491,8 +1485,8 @@ module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
   endrule:rl_receive_read_request
 
   rule rl_send_error_response ( read_state == Burst ) ;
-    AXI4_Rd_Data #(data_width , user_width) r = AXI4_Rd_Data {
-                                                  rresp : AXI4_DECERR, 
+    AXI4_Rd_Data #(wd_id, wd_data, wd_user) r = AXI4_Rd_Data {
+                                                  rresp : axi4_resp_decerr, 
                                                   rdata : ? , 
                                                   rlast : rg_rd_counter == rg_rd_length, 
                                                   ruser : rg_rd_user, 
@@ -1509,7 +1503,7 @@ module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
     
     let aw  <- pop_o (s_xactor.o_wr_addr);
     let w   <- pop_o (s_xactor.o_wr_data);
-	  let b   = AXI4_Wr_Resp {bresp : AXI4_DECERR, buser : aw.awuser, bid : w.wid};
+	  let b   = AXI4_Wr_Resp {bresp : axi4_resp_decerr, buser : aw.awuser, bid : aw.awid};
 
     if( !w.wlast )
       write_state <= Burst;
@@ -1532,11 +1526,11 @@ module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
 
   endrule:rl_write_request_data_channel
 
-  interface slave = s_xactor.axi_side;
+  return s_xactor.axi_side;
 
 endmodule:mkAXI4_Err_2
 
-module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
+module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
 
   AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, wd_user) 
       s_xactor <- mkAXI4_Slave_Xactor(2, 2, 2, 2);
@@ -1563,8 +1557,8 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
   endrule:rl_receive_read_request
 
   rule rl_send_error_response ( read_state == Burst ) ;
-    AXI4_Rd_Data #(data_width , user_width) r = AXI4_Rd_Data {
-                                                  rresp : AXI4_DECERR, 
+    AXI4_Rd_Data #(wd_id, wd_data, wd_user) r = AXI4_Rd_Data {
+                                                  rresp : axi4_resp_decerr, 
                                                   rdata : ? , 
                                                   rlast : rg_rd_counter == rg_rd_length, 
                                                   ruser : rg_rd_user, 
@@ -1581,7 +1575,7 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
     
     let aw  <- pop_o (s_xactor.o_wr_addr);
     let w   <- pop_o (s_xactor.o_wr_data);
-	  let b   = AXI4_Wr_Resp {bresp : AXI4_DECERR, buser : aw.awuser, bid : w.wid};
+	  let b   = AXI4_Wr_Resp {bresp : axi4_resp_decerr, buser : aw.awuser, bid : aw.awid};
 
     if( !w.wlast )
       write_state <= Burst;
@@ -1604,7 +1598,7 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user))
 
   endrule:rl_write_request_data_channel
 
-  interface slave = s_xactor.axi_side;
+  return s_xactor.axi_side;
 
 endmodule:mkAXI4_Err
 
