@@ -1,73 +1,50 @@
-###  -*-Makefile-*-
 
-# Copyright (c) 2018-2019 Bluespec, Inc. All Rights Reserved
+include Makefile.inc
 
-# Makefile for standalone Unit Tester for Deburster (Bluesim only)
+BSVBUILDDIR:=./build/
+VERILOGDIR:=./verilog/
+define_macros:= -D simulate -D ASSERT=True
 
-.PHONY: all
-all: compile  simulator
+# ---------- bluespec related settings -----------------------
+BSVINCDIR:= ./:%/Libraries:$(INCDIR)
+BSC_DIR:=$(shell which bsc)
+BSC_VDIR:=$(subst bin/bsc,bin/,${BSC_DIR})../lib/Verilog
+BSCCMD:=bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) \
+	+RTS -K40000M -RTS -check-assert  -keep-fires -opt-undetermined-vals -remove-false-rules \
+	-remove-empty-rules -remove-starved-rules -remove-dollar -unspecified-to X -show-schedule \
+	-steps-warn-interval 500000 -show-module-use
+# -------------------------------------------------------------
 
-# ================================================================
-# Search path for bsc for .bsv files
+# ---------- verilator related settings -----------------------
+VERILATOR_FLAGS:= -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert \
+	sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
+	-Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
+	--output-split 20000  --output-split-ctrace 10000
+VERILATOR_SPEED:=OPT_SLOW="-O3" OPT_FAST="-O3"
+# -------------------------------------------------------------
 
-BSV_ADDL_LIBS=../../../../src_Core/BSV_Additional_Libs
+default: generate_verilog link_verilator simulate
 
-BSC_PATH = -p ..:$(BSV_ADDL_LIBS):+
+.PHONY: link_verilator
+link_verilator: ## Generate simulation executable using Verilator
+	@echo "Linking $(TOP_MODULE) using verilator"
+	@mkdir -p $(BSVOUTDIR) obj_dir
+	@echo "#define TOPMODULE V$(TOP_MODULE)" > sim_main.h
+	@echo '#include "V$(TOP_MODULE).h"' >> sim_main.h
+	verilator $(VERILATOR_FLAGS) --cc $(TOP_MODULE).v -y $(VERILOGDIR) \
+		-y $(BSC_VDIR) -y common_verilog --exe
+	@ln -f -s ../test_soc/sim_main.cpp obj_dir/sim_main.cpp
+	@ln -f -s ../sim_main.h obj_dir/sim_main.h
+	make $(VERILATOR_SPEED) VM_PARALLEL_BUILDS=1 -j8 -C obj_dir -f V$(TOP_MODULE).mk
+	@cp obj_dir/V$(TOP_MODULE) $(BSVOUTDIR)/out
 
-# ----------------
-# Top-level file and module
-
-TOPFILE   = Unit_Test_Deburster.bsv
-TOPMODULE = mkUnit_Test_Deburster
-
-# ================================================================
-# bsc compilation flags
-
-BSC_COMPILATION_FLAGS += \
-	-keep-fires -aggressive-conditions -no-warn-action-shadowing -no-show-timestamps -check-assert \
-	-suppress-warnings G0020    \
-	+RTS -K128M -RTS  -show-range-conflict
-
-# ================================================================
-# Compile Bluesim intermediate files from BSV sources (needs Bluespec 'bsc' compiler)
-
-TMP_DIRS  = -bdir build_dir  -simdir build_dir  -info-dir build_dir
-
-build_dir:
-	mkdir -p $@
-
-.PHONY: compile
-compile: build_dir
-	@echo "INFO: Re-compiling BSV sources"
-	bsc -u -elab -sim  $(TMP_DIRS)  $(BSC_COMPILATION_FLAGS)  $(BSC_PATH)  $(TOPFILE)
-	@echo "INFO: Re-compiled  BSV sources"
-
-# ================================================================
-# Compile and link Bluesim intermediate files into a Bluesim executable
-
-SIM_EXE_FILE = exe_HW_sim
-
-BSC_C_FLAGS += \
-	-Xc++  -D_GLIBCXX_USE_CXX11_ABI=0 \
-	-Xl -v
-
-.PHONY: simulator
-simulator:
-	@echo "INFO: linking bsc-compiled objects into Bluesim executable"
-	bsc -sim -parallel-sim-link 8 \
-		$(TMP_DIRS) \
-		-e $(TOPMODULE) -o ./$(SIM_EXE_FILE) \
-		$(BSC_C_FLAGS)
-	@echo "INFO: linked bsc-compiled objects into Bluesim executable"
-
-# ================================================================
+.PHONY: generate_verilog 
+generate_verilog:
+	@echo Compiling $(TOP_MODULE) in verilog ...
+	@mkdir -p $(BSVBUILDDIR); 
+	@mkdir -p $(VERILOGDIR); 
+	$(BSCCMD) -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE)  || (echo "BSC COMPILE ERROR"; exit 1)
 
 .PHONY: clean
 clean:
-	rm -r -f  *~  build_dir
-
-.PHONY: full_clean
-full_clean: clean
-	rm -r -f  $(SIM_EXE_FILE)*  *.log  *.vcd
-
-# ================================================================
+	rm -rf build bin *.jou *.log verilog
