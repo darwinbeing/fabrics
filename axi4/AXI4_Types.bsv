@@ -1,4 +1,5 @@
 // Copyright (c) 2019 Bluespec, Inc.  All Rights Reserved
+// see LICENSE.incore for licensing details.
 
 package AXI4_Types;
 
@@ -18,7 +19,7 @@ package AXI4_Types;
 
 import FIFOF       :: *;
 import Connectable :: *;
-
+import DefaultValue :: * ;
 // ----------------
 // BSV additional libs
 
@@ -125,6 +126,20 @@ function Bool fn_addr_is_aligned (Bit #(wd_addr) addr, AXI4_Size size);
 	   || ((size == axsize_64)  && (addr [5:0] == 6'b0))
 	   || ((size == axsize_128) && (addr [6:0] == 7'b0)));
 endfunction:fn_addr_is_aligned
+
+typedef struct{
+  Integer wr_req_depth;
+  Integer rd_req_depth;
+  Integer wr_resp_depth;
+  Integer rd_resp_depth;
+  } QueueSize ;
+
+instance DefaultValue #(QueueSize);
+  defaultValue = QueueSize{ wr_req_depth:  2, 
+                            wr_resp_depth: 2, 
+                            rd_req_depth:  2, 
+                            rd_resp_depth: 2};
+endinstance
 
 // ----------------------------------------------------------------
 // These are the signal-level interfaces for an AXI4 master.
@@ -868,22 +883,19 @@ endinterface: AXI4_Master_Xactor_IFC
 // Master transactor
 // This version uses FIFOFs for total decoupling.
 
-module mkAXI4_Master_Xactor #( parameter Integer wr_req_depth,
-                               parameter Integer rd_req_depth,
-                               parameter Integer wr_resp_depth,
-                               parameter Integer rd_resp_depth )
+module mkAXI4_Master_Xactor #( parameter QueueSize sz)
                              (AXI4_Master_Xactor_IFC #(wd_id, wd_addr, wd_data, wd_user));
 
   Bool unguarded = True;
   Bool guarded   = False;
 
   // These FIFOs are guarded on BSV side, unguarded on AXI side
-  FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (guarded, unguarded, wr_req_depth);
-  FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (guarded, unguarded, wr_req_depth);
-  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (guarded, unguarded, rd_req_depth);
+  FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (guarded, unguarded, sz.wr_req_depth);
+  FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (guarded, unguarded, sz.wr_req_depth);
+  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (guarded, unguarded, sz.rd_req_depth);
 
-  FIFOF #(AXI4_Wr_Resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (unguarded, guarded, wr_resp_depth);
-  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (unguarded, guarded, rd_resp_depth);
+  FIFOF #(AXI4_Wr_Resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (unguarded, guarded, sz.wr_resp_depth);
+  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (unguarded, guarded, sz.rd_resp_depth);
 
   // ----------------------------------------------------------------
   // INTERFACE
@@ -1156,21 +1168,18 @@ endinterface: AXI4_Slave_Xactor_IFC
 // Slave transactor
 // This version uses FIFOFs for total decoupling.
 
-module mkAXI4_Slave_Xactor #( parameter Integer wr_req_depth,
-                              parameter Integer rd_req_depth,
-                              parameter Integer wr_resp_depth,
-                              parameter Integer rd_resp_depth )
+module mkAXI4_Slave_Xactor #( parameter QueueSize sz)
                             (AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, wd_user));
   Bool unguarded = True;
   Bool guarded   = False;
 
   // These FIFOs are guarded on BSV side, unguarded on AXI side
-  FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (unguarded, guarded, wr_req_depth);
-  FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (unguarded, guarded, wr_req_depth);
-  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (unguarded, guarded, rd_req_depth);
+  FIFOF #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (unguarded, guarded, sz.wr_req_depth);
+  FIFOF #(AXI4_Wr_Data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (unguarded, guarded, sz.wr_req_depth);
+  FIFOF #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (unguarded, guarded, sz.rd_req_depth);
 
-  FIFOF #(AXI4_Wr_Resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (guarded, unguarded, wr_resp_depth);
-  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (guarded, unguarded, rd_resp_depth);
+  FIFOF #(AXI4_Wr_Resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (guarded, unguarded, sz.wr_resp_depth);
+  FIFOF #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (guarded, unguarded, sz.rd_resp_depth);
 
   // ----------------------------------------------------------------
   // INTERFACE
@@ -1533,7 +1542,7 @@ endmodule:mkAXI4_Err_2
 module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
 
   AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, wd_user) 
-      s_xactor <- mkAXI4_Slave_Xactor(2, 2, 2, 2);
+      s_xactor <- mkAXI4_Slave_Xactor(defaultValue);
 
   Reg #(Err_State)                       read_state              <- mkReg(Idle);
   Reg #(Err_State)                       write_state             <- mkReg(Idle);

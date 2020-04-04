@@ -5,8 +5,8 @@ package AXI4_instance;
   import AXI4_Types  :: *;
   import AXI4_Fabric :: *;
   
-  `define Num_Masters 1
-  `define Num_Slaves 2
+  `define Num_Masters 2
+  `define Num_Slaves 5
   `define Wd_Id 3
   `define Wd_Addr 32
   `define Wd_Data 64
@@ -23,20 +23,20 @@ package AXI4_instance;
     function Bit#(`Num_Slaves_bits) fn_addr_to_slave_num(Bit#(`Wd_Addr) wd_addr);
       if (wd_addr >= 'h1000 && wd_addr < 'h2000)
         return 0;
-      /*else if (wd_addr >= 'h2000 && wd_addr < 'h3000)
+      else if (wd_addr >= 'h2000 && wd_addr < 'h3000)
         return 1;
       else if (wd_addr >= 'h3000 && wd_addr < 'h4000)
         return 2;
       else if (wd_addr >= 'h4000 && wd_addr < 'h5000)
-        return 3;*/
+        return 3;
       else
-        return 1;
+        return 4;
     endfunction:fn_addr_to_slave_num
 
   (*synthesize*)                            
   module mkinstance (Fabric_AXI4_IFC);
 
-      Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_addr_to_slave_num);
+      Fabric_AXI4_IFC fabric <- mkAXI4_Fabric_2 (fn_addr_to_slave_num);
 
    return fabric;
 
