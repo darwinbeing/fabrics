@@ -97,13 +97,13 @@ module mkAXI4_Fabric #(function Bit #(TLog #(tn_num_slaves))
   // Predicates to check if master I has transaction for slave J
 
   function Bool fv_mi_has_wr_for_sj (Integer mi, Integer sj);
-    let addr       = xactors_from_masters [mi].o_wr_addr.first.awaddr;
+    let addr       = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
     let slave_num  = fn_addr_to_slave_num (addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_wr_for_sj
 
   function Bool fv_mi_has_rd_for_sj (Integer mi, Integer sj);
-    let addr       = xactors_from_masters [mi].o_rd_addr.first.araddr;
+    let addr       = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
     let slave_num  = fn_addr_to_slave_num (addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_rd_for_sj
@@ -116,8 +116,8 @@ module mkAXI4_Fabric #(function Bit #(TLog #(tn_num_slaves))
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj));
     	  // Move the AW transaction
-    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].o_wr_addr);
-    	  xactors_to_slaves [sj].i_wr_addr.enq (a);
+    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
+    	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
     	  // Enqueue a task for the W channel
     	  v_f_wd_tasks      [mi].enq (fromInteger (sj));
@@ -137,10 +137,10 @@ module mkAXI4_Fabric #(function Bit #(TLog #(tn_num_slaves))
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
     rule rl_wr_xaction_master_to_slave_data (v_f_wd_tasks [mi].first == fromInteger(sj) );
       
-      AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].o_wr_data);
+      AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
       // If sj is a legal slave, send it the data beat, else drop it.
-      xactors_to_slaves [sj].i_wr_data.enq (d);
+      xactors_to_slaves [sj].fifo_side.i_wr_data.enq (d);
       `logLevel( fabric, 0, $format("FABRIC: WRD: master[%2d] -> slave[%2d]", mi, sj))
     	`logLevel( fabric, 0, $format("FABRIC: WRD: ",fshow (d) ))
       
@@ -158,9 +158,9 @@ module mkAXI4_Fabric #(function Bit #(TLog #(tn_num_slaves))
 	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj)));
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
-	      AXI4_Wr_Resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].o_wr_resp);
+	      AXI4_Wr_Resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
 
-	      xactors_from_masters [mi].i_wr_resp.enq (b);
+	      xactors_from_masters [mi].fifo_side.i_wr_resp.enq (b);
         `logLevel( fabric, 0, $format("FABRIC: WRB: slave[%2d] -> master[%2d]",sj, mi))
         `logLevel( fabric, 0, $format("FABRIC: WRB: ", fshow(b)))
 	    endrule:rl_wr_resp_slave_to_master
@@ -173,8 +173,8 @@ module mkAXI4_Fabric #(function Bit #(TLog #(tn_num_slaves))
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
       rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj));
 	      
-	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].o_rd_addr);
-	      xactors_to_slaves [sj].i_rd_addr.enq (a);
+	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
+	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      v_f_rd_mis [sj].enq (fromInteger (mi));
 	      v_f_rd_sjs [mi].enq (fromInteger (sj));
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
@@ -189,14 +189,14 @@ module mkAXI4_Fabric #(function Bit #(TLog #(tn_num_slaves))
 	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
 	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj)));
 
-	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) r <- pop_o (xactors_to_slaves [sj].o_rd_data);
+	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
 
 	      if ( r.rlast ) begin
 	        // Final beat of burst
 	        v_f_rd_mis [sj].deq;
 	        v_f_rd_sjs [mi].deq;
         end
-        xactors_from_masters [mi].i_rd_data.enq (r);
+        xactors_from_masters [mi].fifo_side.i_rd_data.enq (r);
 	      `logLevel( fabric, 0, $format("FABRIC: RDR: slave[%2d] -> master[%2d]", sj, mi))
 	      `logLevel( fabric, 0, $format("FABRIC: RDR: ", fshow(r) ))
 
@@ -263,13 +263,13 @@ module mkAXI4_Fabric_2 #(function Bit #(TLog #(tn_num_slaves))
   // Predicates to check if master I has transaction for slave J
 
   function Bool fv_mi_has_wr_for_sj (Integer mi, Integer sj);
-    let addr       = xactors_from_masters [mi].o_wr_addr.first.awaddr;
+    let addr       = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
     let slave_num  = fn_addr_to_slave_num (addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_wr_for_sj
 
   function Bool fv_mi_has_rd_for_sj (Integer mi, Integer sj);
-    let addr       = xactors_from_masters [mi].o_rd_addr.first.araddr;
+    let addr       = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
     let slave_num  = fn_addr_to_slave_num (addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_rd_for_sj
@@ -282,8 +282,8 @@ module mkAXI4_Fabric_2 #(function Bit #(TLog #(tn_num_slaves))
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj));
     	  // Move the AW transaction
-    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].o_wr_addr);
-    	  xactors_to_slaves [sj].i_wr_addr.enq (a);
+    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
+    	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
     	  // Enqueue a task for the W channel
     	  v_f_wd_tasks      [mi].enq (fromInteger (sj));
@@ -303,10 +303,10 @@ module mkAXI4_Fabric_2 #(function Bit #(TLog #(tn_num_slaves))
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
     rule rl_wr_xaction_master_to_slave_data (v_f_wd_tasks [mi].first == fromInteger(sj) );
       
-      AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].o_wr_data);
+      AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
       // If sj is a legal slave, send it the data beat, else drop it.
-      xactors_to_slaves [sj].i_wr_data.enq (d);
+      xactors_to_slaves [sj].fifo_side.i_wr_data.enq (d);
       `logLevel( fabric, 0, $format("FABRIC: WRD: master[%2d] -> slave[%2d]", mi, sj))
     	`logLevel( fabric, 0, $format("FABRIC: WRD: ",fshow (d) ))
       
@@ -324,9 +324,9 @@ module mkAXI4_Fabric_2 #(function Bit #(TLog #(tn_num_slaves))
 	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj)));
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
-	      AXI4_Wr_Resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].o_wr_resp);
+	      AXI4_Wr_Resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
 
-	      xactors_from_masters [mi].i_wr_resp.enq (b);
+	      xactors_from_masters [mi].fifo_side.i_wr_resp.enq (b);
         `logLevel( fabric, 0, $format("FABRIC: WRB: slave[%2d] -> master[%2d]",sj, mi))
         `logLevel( fabric, 0, $format("FABRIC: WRB: ", fshow(b)))
 	    endrule:rl_wr_resp_slave_to_master
@@ -339,8 +339,8 @@ module mkAXI4_Fabric_2 #(function Bit #(TLog #(tn_num_slaves))
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
       rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj));
 	      
-	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].o_rd_addr);
-	      xactors_to_slaves [sj].i_rd_addr.enq (a);
+	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
+	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      v_f_rd_mis [sj].enq (fromInteger (mi));
 	      v_f_rd_sjs [mi].enq (fromInteger (sj));
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
@@ -355,14 +355,14 @@ module mkAXI4_Fabric_2 #(function Bit #(TLog #(tn_num_slaves))
 	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
 	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj)));
 
-	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) r <- pop_o (xactors_to_slaves [sj].o_rd_data);
+	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
 
 	      if ( r.rlast ) begin
 	        // Final beat of burst
 	        v_f_rd_mis [sj].deq;
 	        v_f_rd_sjs [mi].deq;
         end
-        xactors_from_masters [mi].i_rd_data.enq (r);
+        xactors_from_masters [mi].fifo_side.i_rd_data.enq (r);
 	      `logLevel( fabric, 0, $format("FABRIC: RDR: slave[%2d] -> master[%2d]", sj, mi))
 	      `logLevel( fabric, 0, $format("FABRIC: RDR: ", fshow(r) ))
 

@@ -875,18 +875,14 @@ interface AXI4_Master_Xactor_IFC #(numeric type wd_id,
 				   numeric type wd_addr,
 				   numeric type wd_data,
 				   numeric type wd_user);
-   method Action reset;
+  method Action reset;
 
-   // AXI side
-   interface AXI4_Master_IFC #(wd_id, wd_addr, wd_data, wd_user)  axi_side;
+  // AXI side
+  interface AXI4_Master_IFC #(wd_id, wd_addr, wd_data, wd_user)  axi_side;
+ 
+  // Server side
+  interface AXI4_Server_IFC #(wd_id, wd_addr, wd_data, wd_user)  fifo_side;
 
-   // FIFOF side
-   interface FIFOF_I #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  i_wr_addr;
-   interface FIFOF_I #(AXI4_Wr_Data #(wd_data, wd_user))         i_wr_data;
-   interface FIFOF_O #(AXI4_Wr_Resp #(wd_id, wd_user))           o_wr_resp;
-
-   interface FIFOF_I #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  i_rd_addr;
-   interface FIFOF_O #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  o_rd_data;
 endinterface: AXI4_Master_Xactor_IFC
 
 // ----------------------------------------------------------------
@@ -1002,12 +998,14 @@ module mkAXI4_Master_Xactor #( parameter QueueSize sz)
 	endinterface;
 
    // FIFOF side
-   interface i_wr_addr = to_FIFOF_I (f_wr_addr);
-   interface i_wr_data = to_FIFOF_I (f_wr_data);
-   interface o_wr_resp = to_FIFOF_O (f_wr_resp);
+  interface fifo_side = interface AXI4_Server_IFC
+    interface i_wr_addr = to_FIFOF_I (f_wr_addr);
+    interface i_wr_data = to_FIFOF_I (f_wr_data);
+    interface o_wr_resp = to_FIFOF_O (f_wr_resp);
 
-   interface i_rd_addr = to_FIFOF_I (f_rd_addr);
-   interface o_rd_data = to_FIFOF_O (f_rd_data);
+    interface i_rd_addr = to_FIFOF_I (f_rd_addr);
+    interface o_rd_data = to_FIFOF_O (f_rd_data);
+  endinterface;
 endmodule: mkAXI4_Master_Xactor
 
 // ----------------------------------------------------------------
@@ -1145,12 +1143,14 @@ module mkAXI4_Master_Xactor_2 (AXI4_Master_Xactor_IFC #(wd_id, wd_addr, wd_data,
 	 	endinterface;
 
   // FIFOF side
-  interface i_wr_addr = fn_crg_and_rg_to_FIFOF_I (crg_wr_addr_full [port_enq], rg_wr_addr);
-  interface i_wr_data = fn_crg_and_rg_to_FIFOF_I (crg_wr_data_full [port_enq], rg_wr_data);
-  interface o_wr_resp = fn_crg_and_rg_to_FIFOF_O (crg_wr_resp_full [port_deq], rg_wr_resp);
+  interface fifo_side = interface AXI4_Server_IFC
+    interface i_wr_addr = fn_crg_and_rg_to_FIFOF_I (crg_wr_addr_full [port_enq], rg_wr_addr);
+    interface i_wr_data = fn_crg_and_rg_to_FIFOF_I (crg_wr_data_full [port_enq], rg_wr_data);
+    interface o_wr_resp = fn_crg_and_rg_to_FIFOF_O (crg_wr_resp_full [port_deq], rg_wr_resp);
 
-  interface i_rd_addr = fn_crg_and_rg_to_FIFOF_I (crg_rd_addr_full [port_enq], rg_rd_addr);
-  interface o_rd_data = fn_crg_and_rg_to_FIFOF_O (crg_rd_data_full [port_deq], rg_rd_data);
+    interface i_rd_addr = fn_crg_and_rg_to_FIFOF_I (crg_rd_addr_full [port_enq], rg_rd_addr);
+    interface o_rd_data = fn_crg_and_rg_to_FIFOF_O (crg_rd_data_full [port_deq], rg_rd_data);
+  endinterface;
 endmodule: mkAXI4_Master_Xactor_2
 
 // ================================================================
@@ -1164,14 +1164,8 @@ interface AXI4_Slave_Xactor_IFC #(numeric type wd_id,
 
    // AXI side
    interface AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user) axi_side;
+   interface AXI4_Client_IFC #(wd_id, wd_addr, wd_data, wd_user) fifo_side;
 
-   // FIFOF side
-   interface FIFOF_O #(AXI4_Wr_Addr #(wd_id, wd_addr, wd_user))  o_wr_addr;
-   interface FIFOF_O #(AXI4_Wr_Data #(wd_data, wd_user))         o_wr_data;
-   interface FIFOF_I #(AXI4_Wr_Resp #(wd_id, wd_user))           i_wr_resp;
-
-   interface FIFOF_O #(AXI4_Rd_Addr #(wd_id, wd_addr, wd_user))  o_rd_addr;
-   interface FIFOF_I #(AXI4_Rd_Data #(wd_id, wd_data, wd_user))  i_rd_data;
 endinterface: AXI4_Slave_Xactor_IFC
 
 // ----------------------------------------------------------------
@@ -1304,15 +1298,17 @@ module mkAXI4_Slave_Xactor #( parameter QueueSize sz)
 	 	  if (rready && f_rd_data.notEmpty)
 	 	    f_rd_data.deq;
 	 	endmethod
-	 	endinterface;
+	endinterface;
 
-  // FIFOF side
-  interface o_wr_addr = to_FIFOF_O (f_wr_addr);
-  interface o_wr_data = to_FIFOF_O (f_wr_data);
-  interface i_wr_resp = to_FIFOF_I (f_wr_resp);
+  interface fifo_side = interface AXI4_Client_IFC
+    // FIFOF side
+    interface o_wr_addr = to_FIFOF_O (f_wr_addr);
+    interface o_wr_data = to_FIFOF_O (f_wr_data);
+    interface i_wr_resp = to_FIFOF_I (f_wr_resp);
 
-  interface o_rd_addr = to_FIFOF_O (f_rd_addr);
-  interface i_rd_data = to_FIFOF_I (f_rd_data);
+    interface o_rd_addr = to_FIFOF_O (f_rd_addr);
+    interface i_rd_data = to_FIFOF_I (f_rd_data);
+  endinterface;
 endmodule: mkAXI4_Slave_Xactor
 
 // ----------------------------------------------------------------
@@ -1468,13 +1464,15 @@ module mkAXI4_Slave_Xactor_2 (AXI4_Slave_Xactor_IFC #(wd_id, wd_addr, wd_data, w
 	 	endmethod
 	 	endinterface;
 
-  // FIFOF side
-  interface o_wr_addr = fn_crg_and_rg_to_FIFOF_O (crg_wr_addr_full [port_deq], rg_wr_addr);
-  interface o_wr_data = fn_crg_and_rg_to_FIFOF_O (crg_wr_data_full [port_deq], rg_wr_data);
-  interface i_wr_resp = fn_crg_and_rg_to_FIFOF_I (crg_wr_resp_full [port_enq], rg_wr_resp);
+  interface fifo_side = interface AXI4_Client_IFC
+    // FIFOF side
+    interface o_wr_addr = fn_crg_and_rg_to_FIFOF_O (crg_wr_addr_full [port_deq], rg_wr_addr);
+    interface o_wr_data = fn_crg_and_rg_to_FIFOF_O (crg_wr_data_full [port_deq], rg_wr_data);
+    interface i_wr_resp = fn_crg_and_rg_to_FIFOF_I (crg_wr_resp_full [port_enq], rg_wr_resp);
 
-  interface o_rd_addr = fn_crg_and_rg_to_FIFOF_O (crg_rd_addr_full [port_deq], rg_rd_addr);
-  interface i_rd_data = fn_crg_and_rg_to_FIFOF_I (crg_rd_data_full [port_enq], rg_rd_data);
+    interface o_rd_addr = fn_crg_and_rg_to_FIFOF_O (crg_rd_addr_full [port_deq], rg_rd_addr);
+    interface i_rd_data = fn_crg_and_rg_to_FIFOF_I (crg_rd_data_full [port_enq], rg_rd_data);
+  endinterface;
 endmodule: mkAXI4_Slave_Xactor_2
 
 typedef enum {Idle, Burst} Err_State deriving(Eq, Bits, FShow);
@@ -1493,7 +1491,7 @@ module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
 
   rule rl_receive_read_request(read_state == Idle);
     
-    let ar                <- pop_o (s_xactor.o_rd_addr);
+    let ar                <- pop_o (s_xactor.fifo_side.o_rd_addr);
     read_state            <= Burst;
 
     rg_rd_id              <= ar.arid;
@@ -1515,19 +1513,19 @@ module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
     else
       rg_rd_counter<= rg_rd_counter + 1;
 
-    s_xactor.i_rd_data.enq(r);
+    s_xactor.fifo_side.i_rd_data.enq(r);
   endrule:rl_send_error_response
 
   rule rl_receive_write_request(write_state == Idle);
     
-    let aw  <- pop_o (s_xactor.o_wr_addr);
-    let w   <- pop_o (s_xactor.o_wr_data);
+    let aw  <- pop_o (s_xactor.fifo_side.o_wr_addr);
+    let w   <- pop_o (s_xactor.fifo_side.o_wr_data);
 	  let b   = AXI4_Wr_Resp {bresp : axi4_resp_decerr, buser : aw.awuser, bid : aw.awid};
 
     if( !w.wlast )
       write_state <= Burst;
     else
-    	s_xactor.i_wr_resp.enq (b);
+    	s_xactor.fifo_side.i_wr_resp.enq (b);
 
     rg_write_response <= b;
   endrule:rl_receive_write_request
@@ -1536,10 +1534,10 @@ module mkAXI4_Err_2(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
   // send a error response on receiving the last data.
   rule rl_write_request_data_channel(write_state == Burst);
     
-    let w  <- pop_o (s_xactor.o_wr_data);
+    let w  <- pop_o (s_xactor.fifo_side.o_wr_data);
 
     if ( w.wlast ) begin
-		  s_xactor.i_wr_resp.enq (rg_write_response);
+		  s_xactor.fifo_side.i_wr_resp.enq (rg_write_response);
       write_state <= Idle;
     end
 
@@ -1565,7 +1563,7 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
 
   rule rl_receive_read_request(read_state == Idle);
     
-    let ar                <- pop_o (s_xactor.o_rd_addr);
+    let ar                <- pop_o (s_xactor.fifo_side.o_rd_addr);
     read_state            <= Burst;
 
     rg_rd_id              <= ar.arid;
@@ -1587,19 +1585,19 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
     else
       rg_rd_counter<= rg_rd_counter + 1;
 
-    s_xactor.i_rd_data.enq(r);
+    s_xactor.fifo_side.i_rd_data.enq(r);
   endrule:rl_send_error_response
 
   rule rl_receive_write_request(write_state == Idle);
     
-    let aw  <- pop_o (s_xactor.o_wr_addr);
-    let w   <- pop_o (s_xactor.o_wr_data);
+    let aw  <- pop_o (s_xactor.fifo_side.o_wr_addr);
+    let w   <- pop_o (s_xactor.fifo_side.o_wr_data);
 	  let b   = AXI4_Wr_Resp {bresp : axi4_resp_decerr, buser : aw.awuser, bid : aw.awid};
 
     if( !w.wlast )
       write_state <= Burst;
     else
-    	s_xactor.i_wr_resp.enq (b);
+    	s_xactor.fifo_side.i_wr_resp.enq (b);
 
     rg_write_response <= b;
   endrule:rl_receive_write_request
@@ -1608,10 +1606,10 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
   // send a error response on receiving the last data.
   rule rl_write_request_data_channel(write_state == Burst);
     
-    let w  <- pop_o (s_xactor.o_wr_data);
+    let w  <- pop_o (s_xactor.fifo_side.o_wr_data);
 
     if ( w.wlast ) begin
-		  s_xactor.i_wr_resp.enq (rg_write_response);
+		  s_xactor.fifo_side.i_wr_resp.enq (rg_write_response);
       write_state <= Idle;
     end
 
