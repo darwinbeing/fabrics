@@ -373,6 +373,16 @@ instance Connectable #(AXI4_Master_IFC #(wd_id, wd_addr, wd_data, wd_user),
    endmodule: mkConnection
 endinstance: Connectable
 
+instance Connectable #(AXI4_Slave_IFC  #(wd_id, wd_addr, wd_data, wd_user),
+    AXI4_Master_IFC #(wd_id, wd_addr, wd_data, wd_user));
+
+  module mkConnection #(AXI4_Slave_IFC  #(wd_id, wd_addr, wd_data, wd_user) axis,
+  AXI4_Master_IFC #(wd_id, wd_addr, wd_data, wd_user) axim)(Empty);
+
+    mkConnection(axim, axis);
+  endmodule:mkConnection
+endinstance:Connectable
+
 // ----------------------------------------------------------------
 // AXI4 dummy master: never produces requests, never accepts responses
 
