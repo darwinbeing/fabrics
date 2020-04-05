@@ -1,7 +1,7 @@
 ############ DO NOT CHANGE THESE #################
 INCDIR:=../:./common_bsv
 ############# User changes to be done below #################
-TOP_MODULE:=mkinstance
+TOP_MODULE:=mkinst_withxactors
 TOP_DIR:=./
-TOP_FILE:=AXI4_instance.bsv
+TOP_FILE:=synth_instance.bsv
 
