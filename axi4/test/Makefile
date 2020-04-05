@@ -47,4 +47,4 @@ generate_verilog:
 
 .PHONY: clean
 clean:
-	rm -rf build bin *.jou *.log verilog
+	rm -rf $(BSVBUILDDIR) $(BSVOUTDIR) *.jou *.log $(VERILOGDIR) obj_dir sim_main.h
