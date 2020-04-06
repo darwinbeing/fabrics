@@ -137,7 +137,7 @@ package latency_test;
     /*doc:reg: */
     Reg#(Bit#(32)) rg_count <- mkReg(0);
     /*doc:rule: */
-    rule rl_first_transaction (rg_count == 0);
+    rule rl_send_v1_read (rg_count == 0);
       let stime <- $stime;
       AXI4_Rd_Addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_Rd_Addr { arid:0,
                                                                       araddr:'h1000,
@@ -155,7 +155,7 @@ package latency_test;
       rg_count <= rg_count + 1;
     endrule
     /*doc:rule: */
-    rule rl_end_first (rg_count == 1);
+    rule rl_get_v1_read (rg_count == 1);
       let _resp <- pop_o(inst1.m_fifo[0].o_rd_data);
       `logLevel( tb, 1, $format("Received Response: ",fshow_Rd_Data(_resp)))
       let stime <- $stime;
@@ -163,7 +163,38 @@ package latency_test;
       `logLevel( tb, 0, $format("Total cycles for V1 a single read op: %5d",diff_time/10))
       rg_count <= rg_count + 1;
     endrule
-    rule rl_second_transaction (rg_count == 2);
+    rule rl_send_v1_write (rg_count == 2);
+      let stime <- $stime;
+      AXI4_Wr_Addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_Wr_Addr { awid:0,
+                                                                       awaddr:'h2000,
+                                                                       awlen:0,
+                                                                       awsize:0,
+                                                                       awburst:0,
+                                                                       awlock:0,
+                                                                       awcache:0,
+                                                                       awprot:0,
+                                                                       awqos:0,
+                                                                       awregion:0,
+                                                                       awuser:stime};
+      AXI4_Wr_Data #(`wd_data, `wd_user) _w_req = AXI4_Wr_Data {wdata:'hdeadbeef,
+                                                                wstrb:'1,
+                                                                wlast:True,
+                                                                wuser:stime};
+     `logLevel( tb, 1, $format("Sending request: ", fshow_Wr_Addr(_req)))
+      inst1.m_fifo[0].i_wr_addr.enq(_req);
+      inst1.m_fifo[0].i_wr_data.enq(_w_req);
+      rg_count <= rg_count + 1;
+    endrule
+    /*doc:rule: */
+    rule rl_get_v1_write (rg_count == 3);
+      let _resp <- pop_o(inst1.m_fifo[0].o_wr_resp);
+      `logLevel( tb, 1, $format("Received Response: ",fshow_Wr_Resp(_resp)))
+      let stime <- $stime;
+      let diff_time = stime - _resp.buser;
+      `logLevel( tb, 0, $format("Total cycles for V1 a single write op: %5d",diff_time/10))
+      rg_count <= rg_count + 1;
+    endrule
+    rule rl_second_transaction (rg_count == 4);
       let stime <- $stime;
       AXI4_Rd_Addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_Rd_Addr { arid:0,
                                                                       araddr:'h1000,
@@ -181,7 +212,7 @@ package latency_test;
       rg_count <= rg_count + 1;
     endrule
     /*doc:rule: */
-    rule rl_end_second (rg_count == 3);
+    rule rl_end_second (rg_count == 5);
       let _resp <- pop_o(inst2.m_fifo[0].o_rd_data);
       `logLevel( tb, 1, $format("Received Response: ",fshow_Rd_Data(_resp)))
       let stime <- $stime;
