@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Bluespec, Inc. All Rights Reserved
+// Copyright (c) 2019 Bluespec, Inc. All Rights Reserved see LICENSE.bluespec for details.
 
 package AXI4_Deburster;
 

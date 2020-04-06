@@ -1,5 +1,5 @@
-// Copyright (c) 2019 Bluespec, Inc.  All Rights Reserved
-// see LICENSE.incore for licensing details.
+// Copyright (c) 2013-2019 Bluespec, Inc. see LICENSE.bluespec for details.
+// Copyright (c) 2020 InCore Semiconductors Pvt. Ltd. see LICENSE.incore for details.
 
 package AXI4_Types;
 

@@ -1,4 +1,4 @@
-// see LICENSE for details on licensing
+// Copyright (c) 2020 InCore Semiconductors Pvt. Ltd. see LICENSE.incore for details.
 
 package synth_instance;
 
