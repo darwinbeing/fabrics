@@ -9,8 +9,6 @@ package synth_instance;
   import Connectable  :: * ;
   import GetPut       :: * ;
   
-  `define nmasters 2
-  `define nslaves 5
   `define wd_id 4
   `define wd_addr 32
   `define wd_data 64

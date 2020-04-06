@@ -3,7 +3,7 @@ include Makefile.inc
 
 BSVBUILDDIR:=./build/
 VERILOGDIR:=./verilog/
-define_macros:= -D simulate -D ASSERT=True
+define_macros:= -D simulate -D ASSERT=True -D nmasters=$(MASTERS) -D nslaves=$(SLAVES)
 
 # ---------- bluespec related settings -----------------------
 BSVINCDIR:= ./:%/Libraries:$(INCDIR)
@@ -12,7 +12,7 @@ BSC_VDIR:=$(subst bin/bsc,bin/,${BSC_DIR})../lib/Verilog
 BSCCMD:=bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) \
 	+RTS -K40000M -RTS -check-assert  -keep-fires -opt-undetermined-vals -remove-false-rules \
 	-remove-empty-rules -remove-starved-rules -remove-dollar -unspecified-to X -show-schedule \
-	-steps-warn-interval 500000 -show-module-use
+	-steps-warn-interval 500000 -show-module-use $(define_macros)
 # -------------------------------------------------------------
 
 # ---------- verilator related settings -----------------------
