@@ -1,19 +1,34 @@
 stages:
-  - build
+    - build
+    - verif-release
 
 axi4_build:
   stage: build
   script:
-    - source /tools/setup.sh
-    - cd axi4/test
-    - ./manager.sh update_deps
-    - make MASTERS=1 SLAVES=1 VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics generate_verilog
+      - source /tools/setup.sh
+      - cd axi4/test
+      - ./manager.sh update_deps
+      - make generate_verilog
   only:
     refs:
-      - merge_requests
-      - master
+        - merge_requests
+  tags:
+      - incore-group
+  except:
+      - schedules
+
+
+axi4_verif_release:
+  stage: verif-release
+  script:
+      - source /tools/setup.sh
+      - cd axi4/test
+      - ./manager.sh update_deps
+      - make MASTERS=1 SLAVES=1 VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics generate_verilog
+  only:
+    refs:
+        - master
   tags:
     - incore-group
   except:
     - schedules
-
