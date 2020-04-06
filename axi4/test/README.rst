@@ -7,7 +7,7 @@ Test Infra
 .. contents:: Contents
 
 Generating Verilog
-==================
+~~~~~~~~~~~~~~~~~~
 
 The `synth_instance.bsv` contains 4 synthesizable modules:
 
@@ -25,7 +25,7 @@ compile time by either changing the variables: ``MASTERS`` and ``SLAVES`` in the
 or setting them during the make command.
 
 Command to generate verilog
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
