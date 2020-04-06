@@ -2,7 +2,14 @@
 
 ### Constants
 VERSION=0.1.0
-REPO_BASE=https://gitlab.com/incoresemi/uncore
+
+if [ -z "$inc_token" ]
+then
+  REPO_BASE=https://gitlab.com/incoresemi/uncore
+else
+  REPO_BASE=https://incoretoken:$inc_token@gitlab.com/incoresemi/uncore
+fi
+
 DEPS_FOLDER=.
 
 repo_list=(
