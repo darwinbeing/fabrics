@@ -2,6 +2,10 @@
 Test Infra
 ##########
 
+.. sectnum::
+
+.. contents:: Contents
+
 Generating Verilog
 ==================
 
