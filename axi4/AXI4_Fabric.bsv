@@ -50,8 +50,8 @@ endinterface:AXI4_Fabric_IFC
 
 module mkAXI4_Fabric #(
     function Bit #(TLog #(tn_num_slaves)) fn_addr_to_slave_num (Bit #(wd_addr) addr), 
-    Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask , 
-    Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
+    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask , 
+    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
 		(AXI4_Fabric_IFC #(tn_num_masters, tn_num_slaves, wd_id, wd_addr, wd_data, wd_user))
 
   provisos ( Max #(TLog #(tn_num_masters) , 1, log_nm),
@@ -225,8 +225,8 @@ endmodule
 
 module mkAXI4_Fabric_2 #(
     function Bit #(TLog #(tn_num_slaves)) fn_addr_to_slave_num (Bit #(wd_addr) addr), 
-    Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask ,
-    Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
+    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask ,
+    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
 		(AXI4_Fabric_IFC #(tn_num_masters, tn_num_slaves, wd_id, wd_addr, wd_data, wd_user))
 
   provisos ( Max #(TLog #(tn_num_masters) , 1, log_nm),
