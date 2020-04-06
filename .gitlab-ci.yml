@@ -8,7 +8,8 @@ axi4_build:
       - source /tools/setup.sh
       - cd axi4/test
       - ./manager.sh update_deps
-      - make generate_verilog
+      - make generate_verilog link_verilator
+      - ./bin/out +mtb +l0
   only:
     refs:
         - merge_requests
@@ -24,7 +25,7 @@ axi4_verif_release:
       - source /tools/setup.sh
       - cd axi4/test
       - ./manager.sh update_deps
-      - make MASTERS=1 SLAVES=1 VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics generate_verilog
+      - make MASTERS=1 SLAVES=1 TOP_MODULE=mkinst_onlyfabric TOP_FILE=synth_instance.bsv VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics generate_verilog
   only:
     refs:
         - master

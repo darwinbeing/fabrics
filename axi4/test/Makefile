@@ -2,8 +2,9 @@
 include Makefile.inc
 
 BSVBUILDDIR:=./build/
+BSVOUTDIR:=./bin/
 VERILOGDIR:=./verilog/
-define_macros:= -D simulate -D ASSERT=True -D nmasters=$(MASTERS) -D nslaves=$(SLAVES)
+define_macros:= -D simulate -D ASSERT=True -D nmasters=$(MASTERS) -D nslaves=$(SLAVES) -D simulate
 
 # ---------- bluespec related settings -----------------------
 BSVINCDIR:= ./:%/Libraries:$(INCDIR)
@@ -19,7 +20,7 @@ BSCCMD:=bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir
 VERILATOR_FLAGS:= -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert \
 	sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
 	-Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
-	--output-split 20000  --output-split-ctrace 10000
+	--output-split 20000  --output-split-ctrace 10000 --trace
 VERILATOR_SPEED:=OPT_SLOW="-O3" OPT_FAST="-O3"
 # -------------------------------------------------------------
 
@@ -35,7 +36,7 @@ link_verilator: ## Generate simulation executable using Verilator
 		-y $(BSC_VDIR) -y common_verilog --exe
 	@ln -f -s ../test_soc/sim_main.cpp obj_dir/sim_main.cpp
 	@ln -f -s ../sim_main.h obj_dir/sim_main.h
-	make $(VERILATOR_SPEED) VM_PARALLEL_BUILDS=1 -j8 -C obj_dir -f V$(TOP_MODULE).mk
+	make $(VERILATOR_SPEED) VM_PARALLEL_BUILDS=1 -j4 -C obj_dir -f V$(TOP_MODULE).mk
 	@cp obj_dir/V$(TOP_MODULE) $(BSVOUTDIR)/out
 
 .PHONY: generate_verilog 
@@ -44,6 +45,12 @@ generate_verilog:
 	@mkdir -p $(BSVBUILDDIR); 
 	@mkdir -p $(VERILOGDIR); 
 	$(BSCCMD) -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE)  || (echo "BSC COMPILE ERROR"; exit 1)
+
+.PHONY: simulate
+simulate:
+	@echo Simulating $(TOP_MODULE)
+	@./bin/out +fullverbose 
+	@echo Simulation Done
 
 .PHONY: clean
 clean:

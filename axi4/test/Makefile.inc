@@ -3,7 +3,7 @@ INCDIR:=../:./common_bsv
 MASTERS=2
 SLAVES=5
 ############# User changes to be done below #################
-TOP_MODULE:=mkinst_withxactors
+TOP_MODULE:=mkTb
 TOP_DIR:=./
-TOP_FILE:=synth_instance.bsv
+TOP_FILE:=latency_test.bsv
 

@@ -20,6 +20,7 @@ package AXI4_Types;
 import FIFOF       :: *;
 import Connectable :: *;
 import DefaultValue :: * ;
+`include "Logger.bsv"
 // ----------------
 // BSV additional libs
 
@@ -1570,6 +1571,7 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
     rg_rd_counter         <= 0;
 	  rg_rd_length          <= ar.arlen;
 	  rg_rd_user            <= ar.aruser;
+	  `logLevel( err_slave, 0, $format("ErrSlave: received Read request: ",fshow(ar)))
 
   endrule:rl_receive_read_request
 
@@ -1586,6 +1588,7 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
       rg_rd_counter<= rg_rd_counter + 1;
 
     s_xactor.fifo_side.i_rd_data.enq(r);
+	  `logLevel( err_slave, 0, $format("ErrSlave: sending read response: ",fshow(r)))
   endrule:rl_send_error_response
 
   rule rl_receive_write_request(write_state == Idle);
@@ -1600,6 +1603,7 @@ module mkAXI4_Err(AXI4_Slave_IFC #(wd_id, wd_addr, wd_data, wd_user));
     	s_xactor.fifo_side.i_wr_resp.enq (b);
 
     rg_write_response <= b;
+	  `logLevel( err_slave, 0, $format("ErrSlave: received Read request: ",fshow(aw)))
   endrule:rl_receive_write_request
 
   // if the request is a write burst then keeping popping all the data on the data_channel and
