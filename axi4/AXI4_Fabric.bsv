@@ -80,7 +80,8 @@ module mkAXI4_Fabric #(
   Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) v_f_wr_mis  <- replicateM (mkSizedFIFOF (8));
 
   // On an mi->sj write-transaction, this fifo records a task (sj, awlen) for W channel
-  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
+  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
+      v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
 
   // ----------------
   // Read-transaction book-keeping
@@ -117,7 +118,8 @@ module mkAXI4_Fabric #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && mask[mi][sj] == 1);
     	  // Move the AW transaction
-    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
+    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) 
+    	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
     	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
     	  // Enqueue a task for the W channel
@@ -136,7 +138,8 @@ module mkAXI4_Fabric #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
-    rule rl_wr_xaction_master_to_slave_data (v_f_wd_tasks [mi].first == fromInteger(sj) && mask[mi][sj] == 1);
+    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && 
+                                              mask[mi][sj] == 1);
       
       AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
@@ -175,7 +178,8 @@ module mkAXI4_Fabric #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
       rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && mask[mi][sj] == 1 );
 	      
-	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
+	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) 
+	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      v_f_rd_mis [sj].enq (fromInteger (mi));
 	      v_f_rd_sjs [mi].enq (fromInteger (sj));
@@ -192,7 +196,8 @@ module mkAXI4_Fabric #(
 	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))
 	 			                              && mask[mi][sj] == 1 );
 
-	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
+	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) 
+	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
 
 	      if ( r.rlast ) begin
 	        // Final beat of burst
@@ -249,7 +254,8 @@ module mkAXI4_Fabric_2 #(
   Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) v_f_wr_mis  <- replicateM (mkSizedFIFOF (8));
 
   // On an mi->sj write-transaction, this fifo records a task (sj, awlen) for W channel
-  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
+  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
+      v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
 
   // ----------------
   // Read-transaction book-keeping
@@ -286,7 +292,8 @@ module mkAXI4_Fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && mask[mi][sj] == 1 );
     	  // Move the AW transaction
-    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
+    	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) 
+    	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
     	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
     	  // Enqueue a task for the W channel
@@ -305,7 +312,8 @@ module mkAXI4_Fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
-    rule rl_wr_xaction_master_to_slave_data (v_f_wd_tasks [mi].first == fromInteger(sj) && mask[mi][sj] == 1  );
+    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && 
+                                              mask[mi][sj] == 1  );
       
       AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
@@ -344,7 +352,8 @@ module mkAXI4_Fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
       rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && mask[mi][sj] == 1 );
 	      
-	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
+	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) 
+	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      v_f_rd_mis [sj].enq (fromInteger (mi));
 	      v_f_rd_sjs [mi].enq (fromInteger (sj));
@@ -361,7 +370,8 @@ module mkAXI4_Fabric_2 #(
 	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))
 	 			                              && mask[mi][sj] == 1 );
 
-	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
+	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) 
+	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
 
 	      if ( r.rlast ) begin
 	        // Final beat of burst
