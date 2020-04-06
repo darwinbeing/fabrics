@@ -5,15 +5,15 @@ stages:
 axi4_build:
   stage: build
   script:
-      - echo -e "section_start:`date +%s`:source_tools\r\e[0KHeader of the 1st collapsible section"
+      - echo -e "section_start:`date +%s`:source_tools\r\e[0KSetup Initialization"
       - source /tools/setup.sh
-      - echo -e "section_end:`date +%s`:source_tools\r\e[0K"
-      - echo -e "section_start:`date +%s`:generate_verilog\r\e[0KHeader of the 1st collapsible section"
       - cd axi4/test
       - ./manager.sh update_deps
+      - echo -e "section_end:`date +%s`:source_tools\r\e[0K"
+      - echo -e "section_start:`date +%s`:generate_verilog\r\e[0KGenerate Verilog and Verilate"
       - make generate_verilog link_verilator
       - echo -e "section_end:`date +%s`:generate_verilog\r\e[0K"
-      - echo -e "section_start:`date +%s`:sim_out\r\e[0KHeader of the 1st collapsible section"
+      - echo -e "section_start:`date +%s`:sim_out\r\e[0KSimulate"
       - ./bin/out +mtb +l0
       - echo -e "section_end:`date +%s`:sim_out\r\e[0K"
   only:
