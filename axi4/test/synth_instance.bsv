@@ -42,13 +42,13 @@ package synth_instance;
   
   (*synthesize*)                            
   module mkinst_onlyfabric (Fabric_AXI4_IFC);
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1));
+    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1), replicate('1));
     return fabric;
   endmodule:mkinst_onlyfabric
 
   (*synthesize*)                            
   module mkinst_onlyfabric_2 (Fabric_AXI4_IFC);
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric_2 (fn_mm, replicate('1));
+    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric_2 (fn_mm, replicate('1), replicate('1));
     return fabric;
   endmodule:mkinst_onlyfabric_2
 
@@ -61,7 +61,7 @@ package synth_instance;
     Vector #(`nslaves, AXI4_Slave_Xactor_IFC#(`wd_id, `wd_addr, `wd_data, `wd_user))
         s_xactors <- replicateM(mkAXI4_Slave_Xactor(defaultValue));
 
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1));
+    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1), replicate('1));
 
     for (Integer i = 0; i<`nmasters; i = i + 1) begin
       mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);
@@ -88,7 +88,7 @@ package synth_instance;
     Vector #(`nslaves, AXI4_Slave_Xactor_IFC#(`wd_id, `wd_addr, `wd_data, `wd_user))
         s_xactors <- replicateM(mkAXI4_Slave_Xactor_2);
 
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1));
+    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1), replicate('1));
 
     for (Integer i = 0; i<`nmasters; i = i + 1) begin
       mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);

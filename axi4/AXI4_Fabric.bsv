@@ -50,7 +50,8 @@ endinterface:AXI4_Fabric_IFC
 
 module mkAXI4_Fabric #(
     function Bit #(TLog #(tn_num_slaves)) fn_addr_to_slave_num (Bit #(wd_addr) addr), 
-    Vector#(tn_num_masters, Bit#(tn_num_slaves)) mask)
+    Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask , 
+    Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
 		(AXI4_Fabric_IFC #(tn_num_masters, tn_num_slaves, wd_id, wd_addr, wd_data, wd_user))
 
   provisos ( Max #(TLog #(tn_num_masters) , 1, log_nm),
@@ -116,7 +117,7 @@ module mkAXI4_Fabric #(
   // Wr requests to legal slaves (AW channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && mask[mi][sj] == 1);
+    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && wr_mask[mi][sj] == 1);
     	  // Move the AW transaction
     	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) 
     	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
@@ -139,7 +140,7 @@ module mkAXI4_Fabric #(
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
     rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && 
-                                              mask[mi][sj] == 1);
+                                              wr_mask[mi][sj] == 1);
       
       AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
@@ -160,7 +161,7 @@ module mkAXI4_Fabric #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_resp_slave_to_master (   (v_f_wr_mis [sj].first == fromInteger (mi)) &&
 	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj))
-	 	                             		      && mask[mi][sj] == 1);
+	 	                             		      && wr_mask[mi][sj] == 1);
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
 	      AXI4_Wr_Resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
@@ -176,7 +177,7 @@ module mkAXI4_Fabric #(
   // Rd requests to legal slaves (AR channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && mask[mi][sj] == 1 );
+      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && rd_mask[mi][sj] == 1 );
 	      
 	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
@@ -194,7 +195,7 @@ module mkAXI4_Fabric #(
 
 	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
 	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))
-	 			                              && mask[mi][sj] == 1 );
+	 			                              && rd_mask[mi][sj] == 1 );
 
 	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) 
 	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
@@ -224,7 +225,8 @@ endmodule
 
 module mkAXI4_Fabric_2 #(
     function Bit #(TLog #(tn_num_slaves)) fn_addr_to_slave_num (Bit #(wd_addr) addr), 
-    Vector#(tn_num_masters, Bit#(tn_num_slaves)) mask )
+    Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask ,
+    Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
 		(AXI4_Fabric_IFC #(tn_num_masters, tn_num_slaves, wd_id, wd_addr, wd_data, wd_user))
 
   provisos ( Max #(TLog #(tn_num_masters) , 1, log_nm),
@@ -290,7 +292,7 @@ module mkAXI4_Fabric_2 #(
   // Wr requests to legal slaves (AW channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && mask[mi][sj] == 1 );
+    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && wr_mask[mi][sj] == 1 );
     	  // Move the AW transaction
     	  AXI4_Wr_Addr #(wd_id, wd_addr, wd_user) 
     	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
@@ -313,7 +315,7 @@ module mkAXI4_Fabric_2 #(
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
     rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && 
-                                              mask[mi][sj] == 1  );
+                                              wr_mask[mi][sj] == 1  );
       
       AXI4_Wr_Data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
@@ -334,7 +336,7 @@ module mkAXI4_Fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_resp_slave_to_master (   (v_f_wr_mis [sj].first == fromInteger (mi)) &&
 	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj))
-	 	                             		      && mask[mi][sj] == 1 );
+	 	                             		      && wr_mask[mi][sj] == 1 );
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
 	      AXI4_Wr_Resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
@@ -350,7 +352,7 @@ module mkAXI4_Fabric_2 #(
   // Rd requests to legal slaves (AR channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && mask[mi][sj] == 1 );
+      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && rd_mask[mi][sj] == 1 );
 	      
 	      AXI4_Rd_Addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
@@ -368,7 +370,7 @@ module mkAXI4_Fabric_2 #(
 
 	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
 	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))
-	 			                              && mask[mi][sj] == 1 );
+	 			                              && rd_mask[mi][sj] == 1 );
 
 	      AXI4_Rd_Data #(wd_id, wd_data, wd_user) 
 	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
