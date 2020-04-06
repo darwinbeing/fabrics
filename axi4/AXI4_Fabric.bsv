@@ -80,7 +80,7 @@ module mkAXI4_Fabric #(
   Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) v_f_wr_mis  <- replicateM (mkSizedFIFOF (8));
 
   // On an mi->sj write-transaction, this fifo records a task (sj, awlen) for W channel
-  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) v_f_wd_tasks <- replicateM (mkFIFOF);
+  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
 
   // ----------------
   // Read-transaction book-keeping
@@ -249,7 +249,7 @@ module mkAXI4_Fabric_2 #(
   Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) v_f_wr_mis  <- replicateM (mkSizedFIFOF (8));
 
   // On an mi->sj write-transaction, this fifo records a task (sj, awlen) for W channel
-  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) v_f_wd_tasks <- replicateM (mkFIFOF);
+  Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
 
   // ----------------
   // Read-transaction book-keeping
