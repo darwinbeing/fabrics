@@ -51,7 +51,7 @@ interface APB_Master_IFC#(  numeric type wd_addr,
   method Action m_pready ((* port= "PREADY"  *) Bool          pready, 
                           (* port= "PRDATA"  *) Bit#(wd_data) prdata,
                           (* port= "PSLVERR" *) Bool          pslverr,
-                          (* port= "PUSER"   *) Bit#(wd_user) puser ) ;
+                          (* port= "PRUSER"   *) Bit#(wd_user) puser ) ;
 
 endinterface:APB_Master_IFC
 
@@ -73,11 +73,51 @@ interface APB_Slave_IFC#( numeric type wd_addr,
   (*always_ready, result = "PREADY" *) method Bool                      s_pready;
   (*always_ready, result = "PRDATA" *) method Bit#(wd_data)             s_prdata;
   (*always_ready, result = "PSLVERR"*) method Bool                      s_pslverr;
-  (*always_ready, result = "PUSER"  *) method Bit#(wd_user)             s_puser;
+  (*always_ready, result = "PRUSER"  *) method Bit#(wd_user)             s_puser;
 
 
 endinterface:APB_Slave_IFC
 // ---------------------------------
+
+// Connectable instances
+// -----------------------
+
+instance Connectable #( APB_Master_IFC #(wd_addr, wd_data, wd_user), 
+                        APB_Slave_IFC #(wd_addr, wd_data, wd_user));
+  module mkConnection #( APB_Master_IFC #(wd_addr, wd_data, wd_user) master,
+                          APB_Slave_IFC  #(wd_addr, wd_data, wd_user) slave ) (Empty);
+ 
+    (* fire_when_enabled, no_implicit_conditions *)
+    /*doc:rule: */
+    rule rl_connect_request;
+      slave.s_paddr(master.m_paddr,
+                    master.m_prot,
+                    master.m_penable,
+                    master.m_pwrite,
+                    master.m_pwdata,
+                    master.m_pstrb,
+                    master.m_psel ,
+                    master.m_puser );
+    endrule:rl_connect_request
+
+    (* fire_when_enabled, no_implicit_conditions *)
+    /*doc:rule: */
+    rule rl_connect_response;
+      master.m_pready(slave.s_pready,
+                      slave.s_prdata,
+                      slave.s_pslverr,
+                      slave.s_puser );
+    endrule:rl_connect_response
+  endmodule:mkConnection
+endinstance:Connectable
+
+instance Connectable #( APB_Slave_IFC #(wd_addr, wd_data, wd_user), 
+                        APB_Master_IFC #(wd_addr, wd_data, wd_user));
+  module mkConnection #( APB_Slave_IFC #(wd_addr, wd_data, wd_user) slave,
+                          APB_Master_IFC  #(wd_addr, wd_data, wd_user) master ) (Empty);
+    mkConnection(master, slave);
+  endmodule: mkConnection
+endinstance:Connectable
 
 // Request and Response Structures
 // ---------------------------------
@@ -361,10 +401,6 @@ module mkAPB_Err(APB_Slave_IFC #(wd_addr, wd_data, wd_user));
     method s_pslverr = True;
     method s_puser   = ?;
 endmodule:mkAPB_Err
-
-module mkTb(Empty);
-
-endmodule:mkTb
 
 endpackage:APB_Types
 

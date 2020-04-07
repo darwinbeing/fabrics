@@ -5,5 +5,5 @@ SLAVES=5
 ############# User changes to be done below #################
 TOP_MODULE:=mkTb
 TOP_DIR:=../
-TOP_FILE:=APB_Types.bsv
+TOP_FILE:=APB_Fabric.bsv
 
