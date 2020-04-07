@@ -344,6 +344,24 @@ module mkAPB_Slave_Xactor (APB_Slave_Xactor #(wd_addr, wd_data, wd_user));
   endinterface;
 endmodule:mkAPB_Slave_Xactor
 
+module mkAPB_Err(APB_Slave_IFC #(wd_addr, wd_data, wd_user));
+    method Action s_paddr( Bit#(wd_addr)           paddr,
+                           Bit#(3)                 prot,
+                           Bool                    penable,
+                           Bool                    pwrite,
+                           Bit#(wd_data)           pwdata,
+                           Bit#(TDiv#(wd_data,8))  pstrb,
+                           Bool                    psel ,
+                           Bit#(wd_user)           puser   );
+      noAction;
+    endmethod
+    // outputs from slave
+    method s_pready  = True;
+    method s_prdata  = ?;
+    method s_pslverr = True;
+    method s_puser   = ?;
+endmodule:mkAPB_Err
+
 module mkTb(Empty);
 
 endmodule:mkTb
