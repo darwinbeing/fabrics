@@ -55,8 +55,7 @@ module mkAPB_Fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
     rule rl_select_slave;
       wr_s_request [i] <= wr_m_request;
       wr_s_penable [i] <= wr_m_penable;
-      if ( slave_select[i] == 1)
-        wr_s_psel[i] <= wr_m_psel;
+      wr_s_psel[i]     <= (slave_select[i] == 1) && wr_m_psel;
     endrule:rl_select_slave
 
     rule rl_select_response (slave_select[i] == 1);
@@ -66,8 +65,11 @@ module mkAPB_Fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
       wr_m_pready <= wr_s_pready[i];
     endrule:rl_select_response
 
-    /*interface v_to_slaves = interface APB_Slave_IFC
-      
+  end
+
+  function APB_Master_IFC #(wd_addr, wd_data, wd_user) f1 (Integer i);
+    return interface APB_Master_IFC
+
       method m_paddr    =  wr_s_request[i].paddr;
       method m_prot     =  wr_s_request[i].prot;
       method m_penable  =  wr_s_penable[i];
@@ -76,9 +78,17 @@ module mkAPB_Fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
       method m_pstrb    =  wr_s_request[i].pstrb;
       method m_psel     =  wr_s_psel[i];
       method m_puser    =  wr_s_request[i].puser;
-    endinterface;*/
-  end
+      method Action m_pready (Bool pready,  Bit#(wd_data) prdata,
+                              Bool pslverr, Bit#(wd_user) puser ) ;
+        wr_s_pready[i]   <= pready;
+        wr_s_response[i] <= APB_Response{prdata: prdata,
+                                     puser : puser,
+                                     pslverr : pslverr};
+      endmethod
+    endinterface;
+  endfunction:f1
 
+  interface v_to_slaves = genWith (f1);
 
   interface from_master = interface APB_Slave_IFC
     method Action s_paddr( Bit#(wd_addr)           paddr,
@@ -106,25 +116,6 @@ module mkAPB_Fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
     method s_puser   = wr_m_response.puser;
   endinterface;
 endmodule:mkAPB_Fabric
-
-function Bit#(5) fn_is_IO (Bit#(32) addr);
-  if (addr < 'h1000 )
-    return 'b00001;
-  else if (addr >= 'h1000 && addr < 'h2000)
-    return 'b00010;
-  else if (addr >= 'h2000 && addr < 'h3000)
-    return 'b00100;
-  else if (addr >= 'h3000 && addr < 'h4000)
-    return 'b01000;
-  else
-    return 'b10000;
-endfunction
-module mkTb(APB_Fabric_IFC#(32, 64, 0, 5));
-  let ifc();
-  mkAPB_Fabric #(fn_is_IO) _temp(ifc);
-  return (ifc);
-endmodule:mkTb
-
 
 endpackage:APB_Fabric
 
