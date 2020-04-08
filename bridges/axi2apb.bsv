@@ -12,6 +12,7 @@ import SpecialFIFOs :: * ;
 import FIFOF        :: * ;
 import DefaultValue :: * ;
 import ConfigReg    :: * ;
+import Connectable  :: * ;
 
 
 import AXI4_Types   :: * ;
@@ -195,12 +196,31 @@ module mkAxi2Apb(Axi2Apb_IFC#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
 
 endmodule:mkAxi2Apb
 
-(*synthesize*)
-module mkinst_bridge(Axi2Apb_IFC#(4,32,32,32,32,0));
-  let ifc();
-  mkAxi2Apb _temp(ifc);
-  return ifc;
-endmodule
+instance Connectable #(AXI4_Master_IFC #(axi_id, axi_addr, axi_data, user), 
+    APB_Slave_IFC #(apb_addr, apb_data, user))
+    provisos (Add#(apb_addr, _a, axi_addr), // AXI address cannot be smaller in size than APB
+              Add#(apb_data,  0, axi_data)  // both data buses have to be the same
+             );
+  module mkConnection #(AXI4_Master_IFC #(axi_id, axi_addr, axi_data, user) axi_side,
+                       APB_Slave_IFC #(apb_addr, apb_data, user)         apb_side)
+                       (Empty);
+    Axi2Apb_IFC #(axi_id, axi_addr, axi_data, apb_addr, apb_data, user) bridge <- mkAxi2Apb;
+    mkConnection(axi_side, bridge.axi_side);
+    mkConnection(apb_side, bridge.apb_side);
+  endmodule:mkConnection
+endinstance:Connectable
+
+instance Connectable #(APB_Slave_IFC #(apb_addr, apb_data, user),
+      AXI4_Master_IFC #(axi_id, axi_addr, axi_data, user) )
+    provisos (Add#(apb_addr, _a, axi_addr), // AXI address cannot be smaller in size than APB
+              Add#(apb_data,  0, axi_data)  // both data buses have to be the same
+             );
+  module mkConnection #(APB_Slave_IFC #(apb_addr, apb_data, user)         apb_side,
+                        AXI4_Master_IFC #(axi_id, axi_addr, axi_data, user) axi_side )
+                       (Empty);
+    mkConnection(axi_side, apb_side);
+  endmodule:mkConnection
+endinstance:Connectable
 
 endpackage: axi2apb
 

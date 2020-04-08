@@ -96,7 +96,6 @@ typedef AXI4_Rd_Addr# (`axi_id, `axi_addr, `user) ARReq;
 
 module mkTb(Empty);
   
-  let bridge <- mkinst_bridge;
   let apb_fabric <- mkinst_apbfabric;
   let bram_apb <- mkBRAM_APB('h1000);
   /*doc:reg: */
@@ -104,12 +103,9 @@ module mkTb(Empty);
   Reg#(int) iter <- mkRegU;
   AXI4_Master_Xactor_IFC #(`axi_id, `axi_addr, `axi_data, `user) 
       axi_xactor <- mkAXI4_Master_Xactor(defaultValue);
-  // connect bridge to apb-master
-  mkConnection(apb_fabric.from_master, bridge.apb_side);
-  // connect bram to fabric
+
+  mkConnection(axi_xactor.axi_side, apb_fabric.from_master);
   mkConnection(apb_fabric.v_to_slaves[0], bram_apb);
-  // connect bridge to axi master
-  mkConnection(bridge.axi_side, axi_xactor.axi_side);
   
   Stmt requests = (
     par
