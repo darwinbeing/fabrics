@@ -64,7 +64,12 @@ module mkAxi2Apb(Axi2Apb_IFC#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
   Reg#(Bit#(8))                                         rg_wrreq_burst <- mkReg(0);
   /*doc:reg: this register increments everytime a write-response from the APB is received.*/
   Reg#(Bit#(8))                                         rg_wrres_burst <- mkReg(0);
- 
+
+  /*doc:rule: */
+  rule rl_display_state;
+    `logLevel( bridge, 0, $format("Axi2Apb: State:",fshow(rg_state)))
+  endrule:rl_display_state
+
   /*doc:rule: this rule pops the read request from axi and initiates a request on the APB*/
   rule rl_read_frm_axi (rg_state == Idle);
     let axi_req <- pop_o(axi_xactor.fifo_side.o_rd_addr);
@@ -80,6 +85,8 @@ module mkAxi2Apb(Axi2Apb_IFC#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     rg_rdres_burst   <= 0;
     rg_rd_request    <= axi_req;
     rg_state         <= ReadResp;
+    `logLevel( bridge, 0, $format("Axi2Apb: AXI4-Read:",fshow_Rd_Addr(axi_req)))
+    `logLevel( bridge, 0, $format("Axi2Apb: APB-Req  :",fshow_APB_Req(apb_request)))
   endrule:rl_read_frm_axi
   
   /*doc:rule: this rule will generate new addresses based on burst-mode and lenght and send read 
@@ -101,6 +108,9 @@ module mkAxi2Apb(Axi2Apb_IFC#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     let next_req = rg_rd_request;
     next_req.araddr = new_address;
     rg_rd_request <= next_req;
+    `logLevel( bridge, 0, $format("Axi2Apb: AXI4-RdBurst Addr:%h Count:%d",new_address,
+        rg_rdreq_burst))
+    `logLevel( bridge, 0, $format("Axi2Apb: New APB-Req  :",fshow_APB_Req(apb_request)))
   endrule:rl_send_rd_burst_req
 
   /*doc:rule: collects read responses from APB and send to AXI*/
@@ -111,7 +121,7 @@ module mkAxi2Apb(Axi2Apb_IFC#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
                                      rdata: apb_response.prdata,
                                      rresp: apb_response.pslverr?axi4_resp_slverr:axi4_resp_okay,
                                      ruser: apb_response.puser,
-                                     rlast: rg_rdreq_burst == rg_rd_request.arlen};
+                                     rlast: rg_rdres_burst == rg_rd_request.arlen};
     axi_xactor.fifo_side.i_rd_data.enq(axi_response);
     if(rg_rdres_burst == rg_rd_request.arlen) begin
       rg_state <= Idle;
@@ -119,6 +129,8 @@ module mkAxi2Apb(Axi2Apb_IFC#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     end
     else
       rg_rdres_burst <= rg_rdres_burst + 1;
+    `logLevel( bridge, 0, $format("Axi2Apb: APB-Resp: Count:%2d",rg_rdres_burst, fshow_APB_Resp(apb_response)))
+    `logLevel( bridge, 0, $format("Axi2Apb: AXI-RdResp:",fshow_Rd_Data(axi_response)))
   endrule:rl_read_response_to_axi
   
   /*doc:rule: this rule pops the read request from axi and initiates a request on the APB*/
