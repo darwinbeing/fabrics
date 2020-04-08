@@ -26,7 +26,7 @@ Bit #(1)  apbprot_0_unpriv     = 0;    Bit #(1) apbprot_0_priv       = 1;
 Bit #(1)  apbprot_1_secure     = 0;    Bit #(1) apbprot_1_non_secure = 1;
 Bit #(1)  apbprot_2_data       = 0;    Bit #(1) apbprot_2_instr      = 1;
 
-typedef enum {IDLE, SETUP, ACCESS} State deriving(Bits, FShow, Eq);
+typedef enum {IDLE, SETUP, ACCESS} APBState deriving(Bits, FShow, Eq);
 
 // APB protocol interfaces
 // ---------------------------------
@@ -225,7 +225,7 @@ module mkAPB_Master_Xactor (APB_Master_Xactor_IFC #(wd_addr, wd_data, wd_user));
   FIFOF#(APB_Response #(wd_data, wd_user))          ff_response   <- mkLFIFOF();
 
   /*doc:reg: register to control the current state of transfer */
-  Reg#(State)                                       rg_state      <- mkReg(IDLE);
+  Reg#(APBState)                                       rg_state      <- mkReg(IDLE);
   /*doc:reg: register to hold the request to drive the protocol interface */
   Reg#(APB_Request #(wd_addr, wd_data, wd_user))    rg_request    <- mkReg(unpack(0));
   /*doc:reg: register to drive the psel interface */
