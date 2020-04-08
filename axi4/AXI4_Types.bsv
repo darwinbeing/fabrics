@@ -141,6 +141,36 @@ instance DefaultValue #(QueueSize);
                             rd_req_depth:  2, 
                             rd_resp_depth: 2};
 endinstance
+function Bit#(awidth) fn_axi4burst_addr(Bit#(8) arlen, AXI4_Size arsize, AXI4_Burst arburst, 
+                                        Bit#(awidth) address );
+
+	// this variable will decide the index above which part of the address should
+	// not change in WRAP mode. Bits below this index value be incremented according
+	// to the value of arlen and arsize;
+	Bit#(3) wrap_size;
+	case(arlen)
+		3: wrap_size= 2;
+		7: wrap_size= 3;
+		15: wrap_size=4;
+		default:wrap_size=1;
+	endcase
+
+  // this is address will directly be used for INCR mode
+	Bit#(awidth) new_address=address+(('b1)<<arsize);
+	Bit#(awidth) mask;
+	mask=('1)<<(zeroExtend(arsize)+wrap_size);	// create a mask for bits which will remain constant in WRAP.
+	Bit#(awidth) temp1=address& mask;	  // capture the constant part of the addr in WRAP.
+	Bit#(awidth) temp2=new_address& (~mask);//capture the incremental part of the addr in WRAP.
+
+	if(arburst== axburst_fixed) // FIXED
+		return address;
+	else if(arburst==axburst_incr) // INCR
+		return new_address;
+	else // WRAP
+		return temp1|temp2; // create the new address in the wrap mode by ORing the masked values.
+endfunction
+
+
 
 // ----------------------------------------------------------------
 // These are the signal-level interfaces for an AXI4 master.
