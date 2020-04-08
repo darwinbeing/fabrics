@@ -56,6 +56,8 @@ module mkAPB_Fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
       wr_s_request [i] <= wr_m_request;
       wr_s_penable [i] <= wr_m_penable;
       wr_s_psel[i]     <= (slave_select[i] == 1) && wr_m_psel;
+      if(slave_select[i] == 1 && wr_m_psel)
+        `logLevel( fabric, 0, $format("APB_F: Selecting slave: %2d",i))
     endrule:rl_select_slave
 
     rule rl_select_response (slave_select[i] == 1);
@@ -63,6 +65,8 @@ module mkAPB_Fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
                                     pslverr : wr_s_response[i].pslverr,
                                     puser   : wr_s_response[i].puser };
       wr_m_pready <= wr_s_pready[i];
+      if(wr_s_pready[i])
+        `logLevel( fabric, 0, $format("APB_F: Collecting from slave: %2d",i))
     endrule:rl_select_response
 
   end

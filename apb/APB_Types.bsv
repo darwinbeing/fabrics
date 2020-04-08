@@ -160,12 +160,12 @@ endfunction:fshow_APB_Slverr
 
 /*doc:func: */
 function Fmt fshow_APB_Req (APB_Request #(wd_addr, wd_data, wd_user) x);
-  Fmt result = ($format ("{paddr:%0h,", x.paddr)
+  Fmt result = ($format ("{paddr:'h%0h,", x.paddr)
 		          + $format ("prot:%0d", x.prot)
 		          + $format (",")
   		        + fshow_APB_Write (x.pwrite));
   if (x.pwrite)
-    result = result + ($format(",data:%h",x.pwdata)+
+    result = result + ($format(",data:'h%0h",x.pwdata)+
                        $format(",strb:%b",x.pstrb));
 
 	result = result	 + $format ("}");
@@ -174,7 +174,7 @@ endfunction:fshow_APB_Req
 
 /*doc:func: */
 function Fmt fshow_APB_Resp (APB_Response #(wd_data, wd_user) x);
-  Fmt result = $format("{prdata:%h pslverr:}",x.prdata, fshow_APB_Slverr(x.pslverr));
+  Fmt result = $format("{prdata:'h%0h pslverr:",x.prdata, fshow_APB_Slverr(x.pslverr),"}");
   return result;
 endfunction:fshow_APB_Resp
 // --------------------------------
@@ -255,22 +255,28 @@ module mkAPB_Master_Xactor (APB_Master_Xactor #(wd_addr, wd_data, wd_user));
     rg_sel <= True;
     rg_enable <= False;
     rg_state <= SETUP;
+    `logLevel( fabric, 0, $format("APB_M: IDLE -> SETUP" ))
+    `logLevel( fabric, 0, $format("APB_M: Req from master: ",fshow_APB_Req(req)))
   endrule:rl_idle_to_setup
 
   /*doc:rule: setup state of the transfer*/
   rule rl_setup_state (rg_state == SETUP);
     rg_enable <= True;
     rg_state  <= ACCESS;
+    `logLevel( fabric, 0, $format("APB_M: SETUP -> ACCESS" ))
   endrule:rl_setup_state
 
   /*doc:rule: when there is no more pending request go back to idle state*/
   rule rl_access_to_idle (rg_state == ACCESS && wr_pready && !ff_request.notEmpty);
     rg_enable <= False;
     rg_sel    <= False;
-    rg_state  <= SETUP;
-    ff_response.enq( APB_Response { prdata  : wr_prdata, 
-                                    pslverr : wr_pslverr,
-                                    puser   : wr_puser } );
+    rg_state  <= IDLE;
+    let lv_resp = APB_Response { prdata  : wr_prdata, 
+                                 pslverr : wr_pslverr,
+                                 puser   : wr_puser } ;
+    ff_response.enq(lv_resp);
+    `logLevel( fabric, 0, $format("APB_M: ACCESS -> IDLE" ))
+    `logLevel( fabric, 0, $format("APB_M: Res from slave: ",fshow_APB_Resp(lv_resp)))
   endrule:rl_access_to_idle
 
   /*doc:rule: when there is pending requests, go to setup state instead of idle*/
@@ -286,10 +292,14 @@ module mkAPB_Master_Xactor (APB_Master_Xactor #(wd_addr, wd_data, wd_user));
                                puser  : req.puser };
     rg_sel <= True;
     rg_enable <= False;
-    ff_response.enq( APB_Response { prdata  : wr_prdata, 
-                                    pslverr : wr_pslverr,
-                                    puser   : wr_puser } );
+    let lv_resp = APB_Response { prdata  : wr_prdata, 
+                                 pslverr : wr_pslverr,
+                                 puser   : wr_puser } ;
+    ff_response.enq(lv_resp);
     rg_state <= SETUP ;
+    `logLevel( fabric, 0, $format("APB_M: ACCESS -> SETUP" ))
+    `logLevel( fabric, 0, $format("APB_M: Res from slave: ",fshow_APB_Resp(lv_resp)))
+    `logLevel( fabric, 0, $format("APB_M: Req from master: ",fshow_APB_Req(req)))
   endrule:rl_access_to_setup
 
   interface fifo_side = interface APB_Server_IFC
