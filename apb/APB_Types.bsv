@@ -200,24 +200,24 @@ endinterface:APB_Client_IFC
 
 // Xactor interfaces
 // --------------------------------
-interface APB_Master_Xactor #(  numeric type wd_addr, 
+interface APB_Master_Xactor_IFC #(  numeric type wd_addr, 
                                 numeric type wd_data,
                                 numeric type wd_user);
 
   interface APB_Master_IFC #(wd_addr, wd_data, wd_user) apb_side;
   interface APB_Server_IFC #(wd_addr, wd_data, wd_user) fifo_side;
-endinterface:APB_Master_Xactor
+endinterface:APB_Master_Xactor_IFC
   
-interface APB_Slave_Xactor #(  numeric type wd_addr, 
+interface APB_Slave_Xactor_IFC #(  numeric type wd_addr, 
                                 numeric type wd_data,
                                 numeric type wd_user);
 
   interface APB_Slave_IFC #(wd_addr, wd_data, wd_user) apb_side;
   interface APB_Client_IFC #(wd_addr, wd_data, wd_user) fifo_side;
-endinterface:APB_Slave_Xactor
+endinterface:APB_Slave_Xactor_IFC
 // --------------------------------
 
-module mkAPB_Master_Xactor (APB_Master_Xactor #(wd_addr, wd_data, wd_user));
+module mkAPB_Master_Xactor (APB_Master_Xactor_IFC #(wd_addr, wd_data, wd_user));
 
   /*doc:fifo: this fifo holds the incoming request from the master */
   FIFOF#(APB_Request #(wd_addr, wd_data, wd_user))  ff_request    <- mkBypassFIFOF();
@@ -327,7 +327,7 @@ module mkAPB_Master_Xactor (APB_Master_Xactor #(wd_addr, wd_data, wd_user));
 
 endmodule:mkAPB_Master_Xactor
 
-module mkAPB_Slave_Xactor (APB_Slave_Xactor #(wd_addr, wd_data, wd_user));
+module mkAPB_Slave_Xactor (APB_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
   
   /*doc:fifo: this fifo holds the incoming request from the master */
   FIFOF#(APB_Request #(wd_addr, wd_data, wd_user))  ff_request    <- mkLFIFOF();

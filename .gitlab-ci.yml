@@ -22,6 +22,25 @@ axi4_build:
   except:
       - schedules
 
+apb_build:
+  stage: build
+  script:
+      - echo -e "section_start:`date +%s`:source_tools\r\e[0KSetup Initialization"
+      - source /tools/setup.sh
+      - cd apb/test
+      - ./manager.sh update_deps
+      - echo -e "section_end:`date +%s`:source_tools\r\e[0Ksection_start:`date +%s`:generate_verilog\r\e[0KGenerate Verilog and Verilate"
+      - make generate_verilog link_verilator
+      - echo -e "section_end:`date +%s`:generate_verilog\r\e[0Ksection_start:`date +%s`:sim_out\r\e[0KSimulate"
+      - ./bin/out +mtb +l0
+      - echo -e "section_end:`date +%s`:sim_out\r\e[0K"
+  only:
+    refs:
+        - merge_requests
+  tags:
+      - incore-group
+  except:
+      - schedules
 
 axi4_verif_release:
   stage: verif-release
@@ -29,7 +48,22 @@ axi4_verif_release:
       - source /tools/setup.sh
       - cd axi4/test
       - ./manager.sh update_deps
-      - make MASTERS=1 SLAVES=1 TOP_MODULE=mkinst_onlyfabric TOP_FILE=synth_instance.bsv VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics generate_verilog
+      - make MASTERS=1 SLAVES=1 TOP_MODULE=mkinst_onlyfabric TOP_FILE=synth_instance.bsv VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics/axi4 generate_verilog
+  only:
+    refs:
+        - master
+  tags:
+    - incore-group
+  except:
+    - schedules
+
+apb_verif_release:
+  stage: verif-release
+  script:
+      - source /tools/setup.sh
+      - cd apb/test
+      - ./manager.sh update_deps
+      - make MASTERS=1 SLAVES=1 TOP_MODULE=mkinst_onlyfabric TOP_FILE=synth_instance.bsv VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics/apb generate_verilog
   only:
     refs:
         - master

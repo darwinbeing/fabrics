@@ -26,7 +26,6 @@ import Semi_FIFOF   :: * ;
 `define wd_addr 32
 `define wd_data 32
 `define wd_user 32
-`define nslaves 5
 
 `define bram_index 15
 
@@ -58,7 +57,7 @@ module mkBRAM_APB #(parameter Integer slave_base)
   BRAM_PORT_BE#(Bit#(`bram_index), Bit#(`wd_data), TDiv#(`wd_data,8)) dmem <-
       mkBRAMCore1BELoad(valueOf(TExp#(`bram_index)), False, "test.mem", False);
 
-  APB_Slave_Xactor #(`wd_addr, `wd_data, `wd_user) s_xactor <- mkAPB_Slave_Xactor;
+  APB_Slave_Xactor_IFC #(`wd_addr, `wd_data, `wd_user) s_xactor <- mkAPB_Slave_Xactor;
   Reg#(Bool) rg_read_cycle <- mkDReg(False);
   Reg#(Bit#(`wd_user)) rg_rd_user <- mkReg(0);
   /*doc:rule: */
@@ -97,7 +96,7 @@ module mkTb(Empty);
   let fabric <- mkinst_fabric;
 
   // instantiate a master transactor
-  APB_Master_Xactor#( `wd_addr, `wd_data, `wd_user) master <- mkAPB_Master_Xactor;
+  APB_Master_Xactor_IFC#( `wd_addr, `wd_data, `wd_user) master <- mkAPB_Master_Xactor;
 
   // instantiate brams as slaves
   Vector#(TSub#(`nslaves,1), APB_Slave_IFC# (`wd_addr, `wd_data, `wd_user)) bram_slaves;
