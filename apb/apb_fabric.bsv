@@ -31,19 +31,19 @@ module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
   let v_num_slaves = valueOf(tn_num_slaves);
  
   // define wires carrying information from the master
-  Wire#(ABP_request #(wd_addr, wd_data, wd_user))   wr_m_request    <- mkBypassWire;
+  Wire#(APB_request #(wd_addr, wd_data, wd_user))   wr_m_request    <- mkBypassWire;
   /*doc:wire: */
   Wire#(Bool)                                       wr_m_psel       <- mkBypassWire;
   /*doc:wire: */
   Wire#(Bool)                                       wr_m_penable    <- mkBypassWire;
   /*doc:reg: */
-  Wire#(ABP_response #(wd_data, wd_user))           wr_m_response   <- mkBypassWire;
+  Wire#(APB_response #(wd_data, wd_user))           wr_m_response   <- mkBypassWire;
   Wire#(Bool)                                       wr_m_pready     <- mkBypassWire;
 
   // defining wires carrying information to the slaves
-  Vector#(tn_num_slaves, Wire#(ABP_request #(wd_addr, wd_data, wd_user))) 
+  Vector#(tn_num_slaves, Wire#(APB_request #(wd_addr, wd_data, wd_user))) 
                                 wr_s_request <- replicateM(mkBypassWire);
-  Vector#(tn_num_slaves, Wire#(ABP_response #(wd_data, wd_user)))
+  Vector#(tn_num_slaves, Wire#(APB_response #(wd_data, wd_user)))
                                 wr_s_response <- replicateM(mkBypassWire);
   Vector#(tn_num_slaves, Wire#(Bool))  wr_s_penable  <- replicateM(mkBypassWire);
   Vector#(tn_num_slaves, Wire#(Bool))  wr_s_psel     <- replicateM(mkBypassWire);
@@ -61,7 +61,7 @@ module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
     endrule:rl_select_slave
 
     rule rl_select_response (slave_select[i] == 1);
-      wr_m_response <= ABP_response {prdata : wr_s_response[i].prdata,
+      wr_m_response <= APB_response {prdata : wr_s_response[i].prdata,
                                     pslverr : wr_s_response[i].pslverr,
                                     puser   : wr_s_response[i].puser };
       wr_m_pready <= wr_s_pready[i];
@@ -85,7 +85,7 @@ module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
       method Action m_pready (Bool pready,  Bit#(wd_data) prdata,
                               Bool pslverr, Bit#(wd_user) puser ) ;
         wr_s_pready[i]   <= pready;
-        wr_s_response[i] <= ABP_response{prdata: prdata,
+        wr_s_response[i] <= APB_response{prdata: prdata,
                                      puser : puser,
                                      pslverr : pslverr};
       endmethod
@@ -103,7 +103,7 @@ module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
                            Bit#(TDiv#(wd_data,8))  pstrb,
                            Bool                    psel ,
                            Bit#(wd_user)           puser   );
-      wr_m_request <= ABP_request {paddr  : paddr,       
+      wr_m_request <= APB_request {paddr  : paddr,       
                                 prot   : prot,
                                 pwrite : pwrite,
                                 pwdata : pwdata,

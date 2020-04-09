@@ -68,10 +68,10 @@ module mkBRAM_APB #(parameter Integer slave_base)
     `logLevel( bram, 1, $format("BRAM: base:%h index:%d Req:",slave_base, index, fshow_apb_req(req)))
     if ( req.pwrite ) begin // write operation
       dmem.put(req.pstrb, index, req.pwdata);
-      ABP_response#(`wd_data, `wd_user) resp = 
-          ABP_response{ pslverr: False, prdata: ?, puser:req.puser};
+      APB_response#(`wd_data, `wd_user) resp = 
+          APB_response{ pslverr: False, prdata: ?, puser:req.puser};
       s_xactor.fifo_side.i_response.enq(resp);
-      `logLevel( bram, 1, $format("BRAM: Res:",fshow_apg_resp(resp)))
+      `logLevel( bram, 1, $format("BRAM: Res:",fshow_apb_resp(resp)))
     end
     else begin
       dmem.put(0,index, ?);
@@ -82,10 +82,10 @@ module mkBRAM_APB #(parameter Integer slave_base)
   /*doc:rule: */
   rule rl_read_cycle (rg_read_cycle);
     let data = dmem.read();
-    ABP_response#(`wd_data, `wd_user) resp = 
-          ABP_response{ pslverr: False, prdata: data, puser:rg_rd_user};
+    APB_response#(`wd_data, `wd_user) resp = 
+          APB_response{ pslverr: False, prdata: data, puser:rg_rd_user};
     s_xactor.fifo_side.i_response.enq(resp);
-    `logLevel( bram, 1, $format("BRAM: Res:",fshow_apg_resp(resp)))
+    `logLevel( bram, 1, $format("BRAM: Res:",fshow_apb_resp(resp)))
   endrule
   return s_xactor.apb_side;
 endmodule:mkBRAM_APB
@@ -121,9 +121,9 @@ module mkTb(Empty);
   // connect error slave
   mkConnection(fabric.v_to_slaves[`nslaves-1], err_slave);
   Reg#(int) iter <- mkRegU;
-  Reg#(ABP_request #(`wd_addr, `wd_data, `wd_user)) rg_requests <- mkReg(unpack(0));
+  Reg#(APB_request #(`wd_addr, `wd_data, `wd_user)) rg_requests <- mkReg(unpack(0));
 
-  ABP_request #(`wd_addr, `wd_data, `wd_user) req = ABP_request {paddr : 'h1500,
+  APB_request #(`wd_addr, `wd_data, `wd_user) req = APB_request {paddr : 'h1500,
                                                                  prot  : 0,
                                                                  pwrite: False,
                                                                  pwdata: 'hdeadbeef,
@@ -134,33 +134,33 @@ module mkTb(Empty);
       seq
         action
           let stime <- $stime;
-          let request = ABP_request {paddr:'h2500, pwdata: 'hbabe, pwrite: True, pstrb:'1, puser:stime};
+          let request = APB_request {paddr:'h2500, pwdata: 'hbabe, pwrite: True, pstrb:'1, puser:stime};
           master.fifo_side.i_request.enq(request);
           $display("[%10d]\tSending Write Req",$time);
         endaction
         delay(3);
         action
           let stime <- $stime;
-          let request = ABP_request {paddr:'h1500, pwdata: 'hbabe, pwrite: False, pstrb:'1, puser:stime};
+          let request = APB_request {paddr:'h1500, pwdata: 'hbabe, pwrite: False, pstrb:'1, puser:stime};
           master.fifo_side.i_request.enq(request);
           $display("[%10d]\tSending Read Req",$time);
         endaction
         action
           let stime <- $stime;
-          let request = ABP_request {paddr:'h1600, pwdata: 'hbabe, pwrite: False, pstrb:'1, puser:stime};
+          let request = APB_request {paddr:'h1600, pwdata: 'hbabe, pwrite: False, pstrb:'1, puser:stime};
           master.fifo_side.i_request.enq(request);
           $display("[%10d]\tSending Read Req",$time);
         endaction
         action
           let stime <- $stime;
-          let request = ABP_request {paddr:'h1600, pwdata: 'hbabe, pwrite: True, pstrb:'1, puser:stime};
+          let request = APB_request {paddr:'h1600, pwdata: 'hbabe, pwrite: True, pstrb:'1, puser:stime};
           master.fifo_side.i_request.enq(request);
           $display("[%10d]\tSending Write Req",$time);
         endaction
         delay(100);
         action
           let stime <- $stime;
-          let request = ABP_request {paddr:'h1300, pwdata: 'hbabe, pwrite: False, pstrb:'1, puser:stime};
+          let request = APB_request {paddr:'h1300, pwdata: 'hbabe, pwrite: False, pstrb:'1, puser:stime};
           master.fifo_side.i_request.enq(request);
           $display("[%10d]\tSending Read Req",$time);
         endaction
@@ -173,7 +173,7 @@ module mkTb(Empty);
             master.fifo_side.o_response.deq;
             let stime <- $stime;
             let diff_time = stime - resp.puser;
-            $display("[%10d]\tCyc:%5d Revieved Resp:",$time, diff_time/10, fshow_apg_resp(resp));
+            $display("[%10d]\tCyc:%5d Revieved Resp:",$time, diff_time/10, fshow_apb_resp(resp));
           endaction
       endpar
     endpar
