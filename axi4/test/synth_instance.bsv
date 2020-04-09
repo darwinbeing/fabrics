@@ -2,12 +2,11 @@
 
 package synth_instance;
 
-  import AXI4_Types   :: * ;
-  import AXI4_Fabric  :: * ;
   import Vector       :: * ;
   import DefaultValue :: * ;
   import Connectable  :: * ;
   import GetPut       :: * ;
+  import axi4         :: * ;
   
   `define wd_id 4
   `define wd_addr 32
@@ -15,7 +14,7 @@ package synth_instance;
   `define wd_user 0
   `define nslaves_bits TLog #(`nslaves)
   
-  typedef AXI4_Fabric_IFC #(`nmasters,
+  typedef Ifc_axi4_fabric #(`nmasters,
 			                      `nslaves,
 			                      `wd_id,
 			                      `wd_addr,
@@ -36,32 +35,32 @@ package synth_instance;
   endfunction:fn_mm
 
   interface Ifc_withXactors;
-    interface Vector#(`nmasters, AXI4_Server_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user)) m_fifo;
-    interface Vector#(`nslaves,  AXI4_Client_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user)) s_fifo;
+    interface Vector#(`nmasters, Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user)) m_fifo;
+    interface Vector#(`nslaves,  Ifc_axi4_client #(`wd_id, `wd_addr, `wd_data, `wd_user)) s_fifo;
   endinterface
   
   (*synthesize*)                            
   module mkinst_onlyfabric (Fabric_AXI4_IFC);
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1), replicate('1));
+    Fabric_AXI4_IFC fabric <- mkaxi4_fabric (fn_mm, replicate('1), replicate('1));
     return fabric;
   endmodule:mkinst_onlyfabric
 
   (*synthesize*)                            
   module mkinst_onlyfabric_2 (Fabric_AXI4_IFC);
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric_2 (fn_mm, replicate('1), replicate('1));
+    Fabric_AXI4_IFC fabric <- mkaxi4_fabric_2 (fn_mm, replicate('1), replicate('1));
     return fabric;
   endmodule:mkinst_onlyfabric_2
 
   (*synthesize*)
   module mkinst_withxactors (Ifc_withXactors);
 
-    Vector #(`nmasters, AXI4_Master_Xactor_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user))
-        m_xactors <- replicateM(mkAXI4_Master_Xactor(defaultValue));
+    Vector #(`nmasters, Ifc_axi4_master_xactor #(`wd_id, `wd_addr, `wd_data, `wd_user))
+        m_xactors <- replicateM(mkaxi4_master_xactor(defaultValue));
 
-    Vector #(`nslaves, AXI4_Slave_Xactor_IFC#(`wd_id, `wd_addr, `wd_data, `wd_user))
-        s_xactors <- replicateM(mkAXI4_Slave_Xactor(defaultValue));
+    Vector #(`nslaves, Ifc_axi4_slave_xactor#(`wd_id, `wd_addr, `wd_data, `wd_user))
+        s_xactors <- replicateM(mkaxi4_slave_xactor(defaultValue));
 
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1), replicate('1));
+    Fabric_AXI4_IFC fabric <- mkaxi4_fabric (fn_mm, replicate('1), replicate('1));
 
     for (Integer i = 0; i<`nmasters; i = i + 1) begin
       mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);
@@ -70,9 +69,9 @@ package synth_instance;
       mkConnection(fabric.v_to_slaves[i],s_xactors[i].axi_side);
     end
 
-    function AXI4_Server_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
+    function Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
       = m_xactors[j].fifo_side;
-    function AXI4_Client_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user) f2 (Integer j)
+    function Ifc_axi4_client #(`wd_id, `wd_addr, `wd_data, `wd_user) f2 (Integer j)
       = s_xactors[j].fifo_side;
 
     interface m_fifo = genWith(f1);
@@ -82,13 +81,13 @@ package synth_instance;
   (*synthesize*)
   module mkinst_withxactors_2 (Ifc_withXactors);
 
-    Vector #(`nmasters, AXI4_Master_Xactor_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user))
-        m_xactors <- replicateM(mkAXI4_Master_Xactor_2);
+    Vector #(`nmasters, Ifc_axi4_master_xactor #(`wd_id, `wd_addr, `wd_data, `wd_user))
+        m_xactors <- replicateM(mkaxi4_master_xactor_2);
 
-    Vector #(`nslaves, AXI4_Slave_Xactor_IFC#(`wd_id, `wd_addr, `wd_data, `wd_user))
-        s_xactors <- replicateM(mkAXI4_Slave_Xactor_2);
+    Vector #(`nslaves, Ifc_axi4_slave_xactor#(`wd_id, `wd_addr, `wd_data, `wd_user))
+        s_xactors <- replicateM(mkaxi4_slave_xactor_2);
 
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1), replicate('1));
+    Fabric_AXI4_IFC fabric <- mkaxi4_fabric (fn_mm, replicate('1), replicate('1));
 
     for (Integer i = 0; i<`nmasters; i = i + 1) begin
       mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);
@@ -97,9 +96,9 @@ package synth_instance;
       mkConnection(fabric.v_to_slaves[i],s_xactors[i].axi_side);
     end
 
-    function AXI4_Server_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
+    function Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
       = m_xactors[j].fifo_side;
-    function AXI4_Client_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user) f2 (Integer j)
+    function Ifc_axi4_client #(`wd_id, `wd_addr, `wd_data, `wd_user) f2 (Integer j)
       = s_xactors[j].fifo_side;
 
     interface m_fifo = genWith(f1);

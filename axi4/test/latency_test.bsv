@@ -35,9 +35,8 @@ package latency_test;
   import Vector       :: * ;
   import DefaultValue :: * ;
   import Connectable  :: * ;
-  import AXI4_Fabric  :: * ;
-  import AXI4_Types   :: * ;
   import Semi_FIFOF   :: * ;
+  import axi4         :: * ;
   `include "Logger.bsv"
 
   `define wd_id 4
@@ -46,12 +45,12 @@ package latency_test;
   `define wd_user 32
   `define nslaves_bits TLog #(`nslaves)
   
-  typedef AXI4_Fabric_IFC #(`nmasters,
+  typedef Ifc_axi4_fabric #(`nmasters,
 			                      `nslaves,
 			                      `wd_id,
 			                      `wd_addr,
 			                      `wd_data,
-			                      `wd_user)  Fabric_AXI4_IFC;
+			                      `wd_user)  Ifc_fabric_axi4;
   function Bit#(`nslaves_bits) fn_mm(Bit#(`wd_addr) wd_addr);
     if (wd_addr >= 'h1000 && wd_addr < 'h2000)
       return 0;
@@ -66,29 +65,29 @@ package latency_test;
   endfunction:fn_mm
   
   interface Ifc_withXactors;
-    interface Vector#(`nmasters, AXI4_Server_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user)) m_fifo;
+    interface Vector#(`nmasters, Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user)) m_fifo;
   endinterface
 
   (*synthesize*)                            
-  module mkinst_onlyfabric (Fabric_AXI4_IFC);
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric (fn_mm, replicate('1), replicate('1));
+  module mkinst_onlyfabric (Ifc_fabric_axi4);
+    Ifc_fabric_axi4 fabric <- mkaxi4_fabric (fn_mm, replicate('1), replicate('1));
     return fabric;
   endmodule:mkinst_onlyfabric
 
   (*synthesize*)                            
-  module mkinst_onlyfabric_2 (Fabric_AXI4_IFC);
-    Fabric_AXI4_IFC fabric <- mkAXI4_Fabric_2 (fn_mm, replicate('1), replicate('1));
+  module mkinst_onlyfabric_2 (Ifc_fabric_axi4);
+    Ifc_fabric_axi4 fabric <- mkaxi4_fabric_2 (fn_mm, replicate('1), replicate('1));
     return fabric;
   endmodule:mkinst_onlyfabric_2
 
   (*synthesize*)
   module mkinst_withxactors (Ifc_withXactors);
 
-    Vector #(`nmasters, AXI4_Master_Xactor_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user))
-        m_xactors <- replicateM(mkAXI4_Master_Xactor(defaultValue));
+    Vector #(`nmasters, Ifc_axi4_master_xactor #(`wd_id, `wd_addr, `wd_data, `wd_user))
+        m_xactors <- replicateM(mkaxi4_master_xactor(defaultValue));
 
-    Vector #(`nslaves, AXI4_Slave_IFC#(`wd_id, `wd_addr, `wd_data, `wd_user))
-        s_err <- replicateM(mkAXI4_Err);
+    Vector #(`nslaves, Ifc_axi4_slave#(`wd_id, `wd_addr, `wd_data, `wd_user))
+        s_err <- replicateM(mkaxi4_err);
 
     let fabric <- mkinst_onlyfabric; 
 
@@ -99,7 +98,7 @@ package latency_test;
       mkConnection(fabric.v_to_slaves[i],s_err[i]);
     end
 
-    function AXI4_Server_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
+    function Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
       = m_xactors[j].fifo_side;
 
     interface m_fifo = genWith(f1);
@@ -108,11 +107,11 @@ package latency_test;
   (*synthesize*)
   module mkinst_withxactors_2 (Ifc_withXactors);
 
-    Vector #(`nmasters, AXI4_Master_Xactor_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user))
-        m_xactors <- replicateM(mkAXI4_Master_Xactor_2);
+    Vector #(`nmasters, Ifc_axi4_master_xactor #(`wd_id, `wd_addr, `wd_data, `wd_user))
+        m_xactors <- replicateM(mkaxi4_master_xactor_2);
 
-    Vector #(`nslaves, AXI4_Slave_IFC#(`wd_id, `wd_addr, `wd_data, `wd_user))
-        s_err <- replicateM(mkAXI4_Err_2);
+    Vector #(`nslaves, Ifc_axi4_slave#(`wd_id, `wd_addr, `wd_data, `wd_user))
+        s_err <- replicateM(mkaxi4_err_2);
 
     let fabric <- mkinst_onlyfabric_2; 
 
@@ -123,7 +122,7 @@ package latency_test;
       mkConnection(fabric.v_to_slaves[i],s_err[i]);
     end
 
-    function AXI4_Server_IFC #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
+    function Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
       = m_xactors[j].fifo_side;
 
     interface m_fifo = genWith(f1);
@@ -139,7 +138,7 @@ package latency_test;
     /*doc:rule: */
     rule rl_send_v1_read (rg_count == 0);
       let stime <- $stime;
-      AXI4_Rd_Addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_Rd_Addr { arid:0,
+      AXI4_rd_addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_rd_addr { arid:0,
                                                                       araddr:'h1000,
                                                                       arlen:0,
                                                                       arsize:0,
@@ -150,14 +149,14 @@ package latency_test;
                                                                       arqos:0,
                                                                       arregion:0,
                                                                       aruser: stime };
-     `logLevel( tb, 1, $format("Sending request: ", fshow_Rd_Addr(_req)))
+     `logLevel( tb, 1, $format("Sending request: ", fshow_axi4_rd_addr(_req)))
       inst1.m_fifo[0].i_rd_addr.enq(_req);
       rg_count <= rg_count + 1;
     endrule
     /*doc:rule: */
     rule rl_get_v1_read (rg_count == 1);
       let _resp <- pop_o(inst1.m_fifo[0].o_rd_data);
-      `logLevel( tb, 1, $format("Received Response: ",fshow_Rd_Data(_resp)))
+      `logLevel( tb, 1, $format("Received Response: ",fshow_axi4_rd_data(_resp)))
       let stime <- $stime;
       let diff_time = stime - _resp.ruser;
       `logLevel( tb, 0, $format("Total cycles for V1 a single read op: %5d",diff_time/10))
@@ -165,7 +164,7 @@ package latency_test;
     endrule
     rule rl_send_v1_write (rg_count == 2);
       let stime <- $stime;
-      AXI4_Wr_Addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_Wr_Addr { awid:0,
+      AXI4_wr_addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_wr_addr { awid:0,
                                                                        awaddr:'h2000,
                                                                        awlen:0,
                                                                        awsize:0,
@@ -176,11 +175,11 @@ package latency_test;
                                                                        awqos:0,
                                                                        awregion:0,
                                                                        awuser:stime};
-      AXI4_Wr_Data #(`wd_data, `wd_user) _w_req = AXI4_Wr_Data {wdata:'hdeadbeef,
+      AXI4_wr_data #(`wd_data, `wd_user) _w_req = AXI4_wr_data {wdata:'hdeadbeef,
                                                                 wstrb:'1,
                                                                 wlast:True,
                                                                 wuser:stime};
-     `logLevel( tb, 1, $format("Sending request: ", fshow_Wr_Addr(_req)))
+     `logLevel( tb, 1, $format("Sending request: ", fshow_axi4_wr_addr(_req)))
       inst1.m_fifo[0].i_wr_addr.enq(_req);
       inst1.m_fifo[0].i_wr_data.enq(_w_req);
       rg_count <= rg_count + 1;
@@ -188,7 +187,7 @@ package latency_test;
     /*doc:rule: */
     rule rl_get_v1_write (rg_count == 3);
       let _resp <- pop_o(inst1.m_fifo[0].o_wr_resp);
-      `logLevel( tb, 1, $format("Received Response: ",fshow_Wr_Resp(_resp)))
+      `logLevel( tb, 1, $format("Received Response: ",fshow_axi4_wr_resp(_resp)))
       let stime <- $stime;
       let diff_time = stime - _resp.buser;
       `logLevel( tb, 0, $format("Total cycles for V1 a single write op: %5d",diff_time/10))
@@ -196,7 +195,7 @@ package latency_test;
     endrule
     rule rl_second_transaction (rg_count == 4);
       let stime <- $stime;
-      AXI4_Rd_Addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_Rd_Addr { arid:0,
+      AXI4_rd_addr #(`wd_id, `wd_addr, `wd_user) _req = AXI4_rd_addr { arid:0,
                                                                       araddr:'h1000,
                                                                       arlen:0,
                                                                       arsize:0,
@@ -207,14 +206,14 @@ package latency_test;
                                                                       arqos:0,
                                                                       arregion:0,
                                                                       aruser: stime };
-     `logLevel( tb, 1, $format("Sending request: ", fshow_Rd_Addr(_req)))
+     `logLevel( tb, 1, $format("Sending request: ", fshow_axi4_rd_addr(_req)))
       inst2.m_fifo[0].i_rd_addr.enq(_req);
       rg_count <= rg_count + 1;
     endrule
     /*doc:rule: */
     rule rl_end_second (rg_count == 5);
       let _resp <- pop_o(inst2.m_fifo[0].o_rd_data);
-      `logLevel( tb, 1, $format("Received Response: ",fshow_Rd_Data(_resp)))
+      `logLevel( tb, 1, $format("Received Response: ",fshow_axi4_rd_data(_resp)))
       let stime <- $stime;
       let diff_time = stime - _resp.ruser;
       `logLevel( tb, 0, $format("Total cycles for V2 a single read op: %5d",diff_time/10))
