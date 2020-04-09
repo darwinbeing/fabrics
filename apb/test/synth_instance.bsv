@@ -11,8 +11,8 @@ import SpecialFIFOs :: * ;
 import FIFOF        :: * ;
 import Connectable  :: * ;
 
-import APB_Fabric   :: * ;
-import APB_Types    :: * ;
+import apb          :: * ;
+
 import Semi_FIFOF   :: * ;
 
 `include "Logger.bsv"
@@ -21,9 +21,9 @@ import Semi_FIFOF   :: * ;
 `define wd_data 32
 `define wd_user 32
 (*synthesize*)
-module mkinst_onlyfabric(APB_Fabric_IFC#(`wd_addr, `wd_data, `wd_user,  `nslaves ));
+module mkinst_onlyfabric(Ifc_apb_fabric#(`wd_addr, `wd_data, `wd_user,  `nslaves ));
   let ifc();
-  mkAPB_Fabric #(fn_mm) _temp(ifc);
+  mkapb_fabric #(fn_mm) _temp(ifc);
   return (ifc);
 endmodule:mkinst_onlyfabric
 
@@ -42,17 +42,17 @@ function Bit#(`nslaves) fn_mm (Bit#(32) addr);
 endfunction: fn_mm
 
 interface Ifc_withXactors;
-  interface APB_Server_IFC #(`wd_addr, `wd_data, `wd_user) m_fifo;
-  interface Vector#(`nslaves,  APB_Client_IFC #(`wd_addr, `wd_data, `wd_user)) s_fifo;
+  interface Ifc_apb_server #(`wd_addr, `wd_data, `wd_user) m_fifo;
+  interface Vector#(`nslaves,  Ifc_apb_client #(`wd_addr, `wd_data, `wd_user)) s_fifo;
 endinterface:Ifc_withXactors
 
   (*synthesize*)
   module mkinst_withxactors (Ifc_withXactors);
 
-    APB_Master_Xactor_IFC #(`wd_addr, `wd_data, `wd_user) m_xactor <- mkAPB_Master_Xactor;
+    Ifc_apb_master_xactor #(`wd_addr, `wd_data, `wd_user) m_xactor <- mkapb_master_xactor;
 
-    Vector #(`nslaves, APB_Slave_Xactor_IFC#(`wd_addr, `wd_data, `wd_user))
-        s_xactors <- replicateM(mkAPB_Slave_Xactor);
+    Vector #(`nslaves, Ifc_apb_slave_xactor#(`wd_addr, `wd_data, `wd_user))
+        s_xactors <- replicateM(mkapb_slave_xactor);
 
     let fabric <- mkinst_onlyfabric;
 
@@ -61,7 +61,7 @@ endinterface:Ifc_withXactors
       mkConnection(fabric.v_to_slaves[i],s_xactors[i].apb_side);
     end
 
-    function APB_Client_IFC#(`wd_addr, `wd_data, `wd_user) f2 (Integer j)
+    function Ifc_apb_client#(`wd_addr, `wd_data, `wd_user) f2 (Integer j)
       = s_xactors[j].fifo_side;
 
     interface m_fifo = m_xactor.fifo_side;

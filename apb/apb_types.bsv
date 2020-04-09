@@ -4,7 +4,7 @@ Author: Neel Gala
 Email id: neelgala@incoresemi.com
 Details:
 */
-package APB_Types;
+package apb_types;
 
 import FIFOF          :: * ;
 import Vector         :: * ;
@@ -26,11 +26,11 @@ Bit #(1)  apbprot_0_unpriv     = 0;    Bit #(1) apbprot_0_priv       = 1;
 Bit #(1)  apbprot_1_secure     = 0;    Bit #(1) apbprot_1_non_secure = 1;
 Bit #(1)  apbprot_2_data       = 0;    Bit #(1) apbprot_2_instr      = 1;
 
-typedef enum {IDLE, SETUP, ACCESS} APBState deriving(Bits, FShow, Eq);
+typedef enum {Idle, Setup, Access} APBState deriving(Bits, FShow, Eq);
 
 // APB protocol interfaces
 // ---------------------------------
-interface APB_Master_IFC#(  numeric type wd_addr, 
+interface Ifc_apb_master#(  numeric type wd_addr, 
                             numeric type wd_data,
                             numeric type wd_user );
 
@@ -53,9 +53,9 @@ interface APB_Master_IFC#(  numeric type wd_addr,
                           (* port= "PSLVERR" *) Bool          pslverr,
                           (* port= "PRUSER"   *) Bit#(wd_user) puser ) ;
 
-endinterface:APB_Master_IFC
+endinterface:Ifc_apb_master
 
-interface APB_Slave_IFC#( numeric type wd_addr, 
+interface Ifc_apb_slave#( numeric type wd_addr, 
                           numeric type wd_data,
                           numeric type wd_user );
   // inputs to the slave
@@ -76,16 +76,16 @@ interface APB_Slave_IFC#( numeric type wd_addr,
   (*always_ready, result = "PRUSER"  *) method Bit#(wd_user)             s_puser;
 
 
-endinterface:APB_Slave_IFC
+endinterface:Ifc_apb_slave
 // ---------------------------------
 
 // Connectable instances
 // -----------------------
 
-instance Connectable #( APB_Master_IFC #(wd_addr, wd_data, wd_user), 
-                        APB_Slave_IFC #(wd_addr, wd_data, wd_user));
-  module mkConnection #( APB_Master_IFC #(wd_addr, wd_data, wd_user) master,
-                          APB_Slave_IFC  #(wd_addr, wd_data, wd_user) slave ) (Empty);
+instance Connectable #( Ifc_apb_master #(wd_addr, wd_data, wd_user), 
+                        Ifc_apb_slave #(wd_addr, wd_data, wd_user));
+  module mkConnection #( Ifc_apb_master #(wd_addr, wd_data, wd_user) master,
+                          Ifc_apb_slave  #(wd_addr, wd_data, wd_user) slave ) (Empty);
  
     (* fire_when_enabled, no_implicit_conditions *)
     /*doc:rule: */
@@ -111,10 +111,10 @@ instance Connectable #( APB_Master_IFC #(wd_addr, wd_data, wd_user),
   endmodule:mkConnection
 endinstance:Connectable
 
-instance Connectable #( APB_Slave_IFC #(wd_addr, wd_data, wd_user), 
-                        APB_Master_IFC #(wd_addr, wd_data, wd_user));
-  module mkConnection #( APB_Slave_IFC #(wd_addr, wd_data, wd_user) slave,
-                          APB_Master_IFC  #(wd_addr, wd_data, wd_user) master ) (Empty);
+instance Connectable #( Ifc_apb_slave #(wd_addr, wd_data, wd_user), 
+                        Ifc_apb_master #(wd_addr, wd_data, wd_user));
+  module mkConnection #( Ifc_apb_slave #(wd_addr, wd_data, wd_user) slave,
+                          Ifc_apb_master  #(wd_addr, wd_data, wd_user) master ) (Empty);
     mkConnection(master, slave);
   endmodule: mkConnection
 endinstance:Connectable
@@ -128,7 +128,7 @@ typedef struct{
   Bit#(wd_data)           pwdata;
   Bit#(TDiv#(wd_data,8))  pstrb;
   Bit#(wd_user)           puser;
-} APB_Request #(numeric type wd_addr, 
+} ABP_request #(numeric type wd_addr, 
                 numeric type wd_data, 
                 numeric type wd_user ) deriving(Bits, FShow, Eq);
 
@@ -136,98 +136,98 @@ typedef struct{
   Bit#(wd_data)           prdata;
   Bool                    pslverr;
   Bit#(wd_user)           puser;
-} APB_Response #( numeric type wd_data, 
+} ABP_response #( numeric type wd_data, 
                   numeric type wd_user) deriving(Bits, FShow, Eq);
 // ---------------------------------
 
 // FMT functions for better display
 // --------------------------------
 /*doc:func: */
-function Fmt fshow_APB_Write (Bool x);
+function Fmt fshow_apb_write (Bool x);
   Fmt result = ?;
   if (x) result = $format("write");
   else   result = $format("read");
   return result;
-endfunction:fshow_APB_Write
+endfunction:fshow_apb_write
 
 /*doc:func: */
-function Fmt fshow_APB_Slverr (Bool x);
+function Fmt fshow_apb_slverr (Bool x);
   Fmt result = ?;
   if (x) result = $format("slverr");
   else   result = $format("okay");
   return result;
-endfunction:fshow_APB_Slverr
+endfunction:fshow_apb_slverr
 
 /*doc:func: */
-function Fmt fshow_APB_Req (APB_Request #(wd_addr, wd_data, wd_user) x);
+function Fmt fshow_apb_req (ABP_request #(wd_addr, wd_data, wd_user) x);
   Fmt result = ($format ("{paddr:'h%0h,", x.paddr)
 		          + $format ("prot:%0d", x.prot)
 		          + $format (",")
-  		        + fshow_APB_Write (x.pwrite));
+  		        + fshow_apb_write (x.pwrite));
   if (x.pwrite)
     result = result + ($format(",data:'h%0h",x.pwdata)+
                        $format(",strb:%b",x.pstrb));
 
 	result = result	 + $format ("}");
   return result;
-endfunction:fshow_APB_Req
+endfunction:fshow_apb_req
 
 /*doc:func: */
-function Fmt fshow_APB_Resp (APB_Response #(wd_data, wd_user) x);
-  Fmt result = $format("{prdata:'h%0h pslverr:",x.prdata, fshow_APB_Slverr(x.pslverr),"}");
+function Fmt fshow_apg_resp (ABP_response #(wd_data, wd_user) x);
+  Fmt result = $format("{prdata:'h%0h pslverr:",x.prdata, fshow_apb_slverr(x.pslverr),"}");
   return result;
-endfunction:fshow_APB_Resp
+endfunction:fshow_apg_resp
 // --------------------------------
 
 // Server and Client side interfaces 
 // ---------------------------------
-interface APB_Server_IFC #(numeric type wd_addr,
+interface Ifc_apb_server #(numeric type wd_addr,
                            numeric type wd_data,
                            numeric type wd_user );
 
-  interface FIFOF_I #(APB_Request #(wd_addr, wd_data, wd_user))  i_request;
-  interface FIFOF_O #(APB_Response #(wd_data, wd_user))          o_response;
-endinterface:APB_Server_IFC
+  interface FIFOF_I #(ABP_request #(wd_addr, wd_data, wd_user))  i_request;
+  interface FIFOF_O #(ABP_response #(wd_data, wd_user))          o_response;
+endinterface:Ifc_apb_server
 
-interface APB_Client_IFC #(numeric type wd_addr,
+interface Ifc_apb_client #(numeric type wd_addr,
                            numeric type wd_data,
                            numeric type wd_user );
 
-  interface FIFOF_I #(APB_Response #(wd_data, wd_user))          i_response;
-  interface FIFOF_O #(APB_Request  #(wd_addr, wd_data, wd_user)) o_request;
-endinterface:APB_Client_IFC
+  interface FIFOF_I #(ABP_response #(wd_data, wd_user))          i_response;
+  interface FIFOF_O #(ABP_request  #(wd_addr, wd_data, wd_user)) o_request;
+endinterface:Ifc_apb_client
 // ---------------------------------
 
 // Xactor interfaces
 // --------------------------------
-interface APB_Master_Xactor_IFC #(  numeric type wd_addr, 
+interface Ifc_apb_master_xactor #(  numeric type wd_addr, 
                                 numeric type wd_data,
                                 numeric type wd_user);
 
-  interface APB_Master_IFC #(wd_addr, wd_data, wd_user) apb_side;
-  interface APB_Server_IFC #(wd_addr, wd_data, wd_user) fifo_side;
-endinterface:APB_Master_Xactor_IFC
+  interface Ifc_apb_master #(wd_addr, wd_data, wd_user) apb_side;
+  interface Ifc_apb_server #(wd_addr, wd_data, wd_user) fifo_side;
+endinterface:Ifc_apb_master_xactor
   
-interface APB_Slave_Xactor_IFC #(  numeric type wd_addr, 
+interface Ifc_apb_slave_xactor #(  numeric type wd_addr, 
                                 numeric type wd_data,
                                 numeric type wd_user);
 
-  interface APB_Slave_IFC #(wd_addr, wd_data, wd_user) apb_side;
-  interface APB_Client_IFC #(wd_addr, wd_data, wd_user) fifo_side;
-endinterface:APB_Slave_Xactor_IFC
+  interface Ifc_apb_slave #(wd_addr, wd_data, wd_user) apb_side;
+  interface Ifc_apb_client #(wd_addr, wd_data, wd_user) fifo_side;
+endinterface:Ifc_apb_slave_xactor
 // --------------------------------
 
-module mkAPB_Master_Xactor (APB_Master_Xactor_IFC #(wd_addr, wd_data, wd_user));
+module mkapb_master_xactor (Ifc_apb_master_xactor #(wd_addr, wd_data, wd_user));
 
   /*doc:fifo: this fifo holds the incoming request from the master */
-  FIFOF#(APB_Request #(wd_addr, wd_data, wd_user))  ff_request    <- mkBypassFIFOF();
+  FIFOF#(ABP_request #(wd_addr, wd_data, wd_user))  ff_request    <- mkBypassFIFOF();
   /*doc:fifo: this fifo holds the response to be sent to the master */
-  FIFOF#(APB_Response #(wd_data, wd_user))          ff_response   <- mkLFIFOF();
+  FIFOF#(ABP_response #(wd_data, wd_user))          ff_response   <- mkLFIFOF();
 
   /*doc:reg: register to control the current state of transfer */
-  Reg#(APBState)                                       rg_state      <- mkReg(IDLE);
+  Reg#(APBState)                                       rg_state      <- mkReg(Idle);
   /*doc:reg: register to hold the request to drive the protocol interface */
-  Reg#(APB_Request #(wd_addr, wd_data, wd_user))    rg_request    <- mkReg(unpack(0));
+  Reg#(ABP_request #(wd_addr, wd_data, wd_user))    rg_request    <- mkReg(unpack(0));
   /*doc:reg: register to drive the psel interface */
   Reg#(Bool)                                        rg_sel        <- mkReg(False);
   /*doc:reg: register to drive the penable interface */
@@ -243,10 +243,10 @@ module mkAPB_Master_Xactor (APB_Master_Xactor_IFC #(wd_addr, wd_data, wd_user));
   Wire#(Bit#(wd_user))                              wr_puser      <- mkBypassWire;
 
   /*doc:rule: go from idle state to setup state*/
-  rule rl_idle_to_setup (ff_request.notEmpty && rg_state == IDLE );
+  rule rl_idle_to_setup (ff_request.notEmpty && rg_state == Idle );
     let req = ff_request.first;
     ff_request.deq;
-    rg_request <= APB_Request { paddr : req.paddr,
+    rg_request <= ABP_request { paddr : req.paddr,
                                prot   : req.prot,
                                pwrite : req.pwrite,
                                pwdata : req.pwdata,
@@ -254,37 +254,37 @@ module mkAPB_Master_Xactor (APB_Master_Xactor_IFC #(wd_addr, wd_data, wd_user));
                                puser  : req.puser };
     rg_sel <= True;
     rg_enable <= False;
-    rg_state <= SETUP;
-    `logLevel( fabric, 0, $format("APB_M: IDLE -> SETUP" ))
-    `logLevel( fabric, 0, $format("APB_M: Req from master: ",fshow_APB_Req(req)))
+    rg_state <= Setup;
+    `logLevel( fabric, 0, $format("APB_M: Idle -> Setup" ))
+    `logLevel( fabric, 0, $format("APB_M: Req from master: ",fshow_apb_req(req)))
   endrule:rl_idle_to_setup
 
   /*doc:rule: setup state of the transfer*/
-  rule rl_setup_state (rg_state == SETUP);
+  rule rl_setup_state (rg_state == Setup);
     rg_enable <= True;
-    rg_state  <= ACCESS;
-    `logLevel( fabric, 0, $format("APB_M: SETUP -> ACCESS" ))
+    rg_state  <= Access;
+    `logLevel( fabric, 0, $format("APB_M: Setup -> Access" ))
   endrule:rl_setup_state
 
   /*doc:rule: when there is no more pending request go back to idle state*/
-  rule rl_access_to_idle (rg_state == ACCESS && wr_pready && !ff_request.notEmpty);
+  rule rl_access_to_idle (rg_state == Access && wr_pready && !ff_request.notEmpty);
     rg_enable <= False;
     rg_sel    <= False;
-    rg_state  <= IDLE;
-    let lv_resp = APB_Response { prdata  : wr_prdata, 
+    rg_state  <= Idle;
+    let lv_resp = ABP_response { prdata  : wr_prdata, 
                                  pslverr : wr_pslverr,
                                  puser   : wr_puser } ;
     ff_response.enq(lv_resp);
-    `logLevel( fabric, 0, $format("APB_M: ACCESS -> IDLE" ))
-    `logLevel( fabric, 0, $format("APB_M: Res from slave: ",fshow_APB_Resp(lv_resp)))
+    `logLevel( fabric, 0, $format("APB_M: Access -> Idle" ))
+    `logLevel( fabric, 0, $format("APB_M: Res from slave: ",fshow_apg_resp(lv_resp)))
   endrule:rl_access_to_idle
 
   /*doc:rule: when there is pending requests, go to setup state instead of idle*/
-  rule rl_access_to_setup (rg_state == ACCESS && wr_pready && ff_request.notEmpty);
+  rule rl_access_to_setup (rg_state == Access && wr_pready && ff_request.notEmpty);
     
     let req = ff_request.first;
     ff_request.deq;
-    rg_request <= APB_Request { paddr : req.paddr,
+    rg_request <= ABP_request { paddr : req.paddr,
                                prot   : req.prot,
                                pwrite : req.pwrite,
                                pwdata : req.pwdata,
@@ -292,22 +292,22 @@ module mkAPB_Master_Xactor (APB_Master_Xactor_IFC #(wd_addr, wd_data, wd_user));
                                puser  : req.puser };
     rg_sel <= True;
     rg_enable <= False;
-    let lv_resp = APB_Response { prdata  : wr_prdata, 
+    let lv_resp = ABP_response { prdata  : wr_prdata, 
                                  pslverr : wr_pslverr,
                                  puser   : wr_puser } ;
     ff_response.enq(lv_resp);
-    rg_state <= SETUP ;
-    `logLevel( fabric, 0, $format("APB_M: ACCESS -> SETUP" ))
-    `logLevel( fabric, 0, $format("APB_M: Res from slave: ",fshow_APB_Resp(lv_resp)))
-    `logLevel( fabric, 0, $format("APB_M: Req from master: ",fshow_APB_Req(req)))
+    rg_state <= Setup ;
+    `logLevel( fabric, 0, $format("APB_M: Access -> Setup" ))
+    `logLevel( fabric, 0, $format("APB_M: Res from slave: ",fshow_apg_resp(lv_resp)))
+    `logLevel( fabric, 0, $format("APB_M: Req from master: ",fshow_apb_req(req)))
   endrule:rl_access_to_setup
 
-  interface fifo_side = interface APB_Server_IFC
+  interface fifo_side = interface Ifc_apb_server
     interface i_request  = to_FIFOF_I (ff_request);
     interface o_response = to_FIFOF_O (ff_response);
   endinterface;
 
-  interface apb_side = interface APB_Master_IFC
+  interface apb_side = interface Ifc_apb_master
     method m_paddr    =  rg_request.paddr;
     method m_prot     =  rg_request.prot;
     method m_penable  =  rg_enable;
@@ -325,20 +325,20 @@ module mkAPB_Master_Xactor (APB_Master_Xactor_IFC #(wd_addr, wd_data, wd_user));
     endmethod
   endinterface;
 
-endmodule:mkAPB_Master_Xactor
+endmodule:mkapb_master_xactor
 
-module mkAPB_Slave_Xactor (APB_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
+module mkapb_slave_xactor (Ifc_apb_slave_xactor #(wd_addr, wd_data, wd_user));
   
   /*doc:fifo: this fifo holds the incoming request from the master */
-  FIFOF#(APB_Request #(wd_addr, wd_data, wd_user))  ff_request    <- mkLFIFOF();
+  FIFOF#(ABP_request #(wd_addr, wd_data, wd_user))  ff_request    <- mkLFIFOF();
   /*doc:fifo: this fifo holds the response to be sent to the master */
-  FIFOF#(APB_Response #(wd_data, wd_user))          ff_response   <- mkBypassFIFOF();
+  FIFOF#(ABP_response #(wd_data, wd_user))          ff_response   <- mkBypassFIFOF();
 
   /*doc:reg: */
-  Reg#(APB_Response #(wd_data, wd_user))            rg_response   <- mkReg(unpack(0));
+  Reg#(ABP_response #(wd_data, wd_user))            rg_response   <- mkReg(unpack(0));
   Reg#(Bool)                                        rg_pready     <- mkDReg(False);
 
-  Wire#(APB_Request #(wd_addr, wd_data, wd_user))   wr_request    <- mkBypassWire;
+  Wire#(ABP_request #(wd_addr, wd_data, wd_user))   wr_request    <- mkBypassWire;
   /*doc:wire: */
   Wire#(Bool)                                       wr_psel       <- mkBypassWire;
   /*doc:wire: */
@@ -356,18 +356,18 @@ module mkAPB_Slave_Xactor (APB_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
   rule rl_send_response (rg_wait && wr_psel && wr_penable && ff_response.notEmpty);
     let resp = ff_response.first;
     ff_response.deq;
-    rg_response <= APB_Response{pslverr: resp.pslverr,
+    rg_response <= ABP_response{pslverr: resp.pslverr,
                                prdata  : resp.prdata,
                                puser   : resp.puser };
     rg_pready <= True;
     rg_wait   <= False;
   endrule
 
-  interface fifo_side = interface APB_Client_IFC
+  interface fifo_side = interface Ifc_apb_client
     interface i_response = to_FIFOF_I (ff_response);
     interface o_request  = to_FIFOF_O (ff_request);
   endinterface;
-  interface apb_side = interface APB_Slave_IFC
+  interface apb_side = interface Ifc_apb_slave
     method Action s_paddr( Bit#(wd_addr)           paddr,
                            Bit#(3)                 prot,
                            Bool                    penable,
@@ -376,7 +376,7 @@ module mkAPB_Slave_Xactor (APB_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
                            Bit#(TDiv#(wd_data,8))  pstrb,
                            Bool                    psel ,
                            Bit#(wd_user)           puser   );
-      wr_request <= APB_Request {paddr  : paddr,       
+      wr_request <= ABP_request {paddr  : paddr,       
                                 prot   : prot,
                                 pwrite : pwrite,
                                 pwdata : pwdata,
@@ -392,9 +392,9 @@ module mkAPB_Slave_Xactor (APB_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
     method s_pslverr = rg_response.pslverr;
     method s_puser   = rg_response.puser;
   endinterface;
-endmodule:mkAPB_Slave_Xactor
+endmodule:mkapb_slave_xactor
 
-module mkAPB_Err(APB_Slave_IFC #(wd_addr, wd_data, wd_user));
+module mkapb_err(Ifc_apb_slave #(wd_addr, wd_data, wd_user));
     method Action s_paddr( Bit#(wd_addr)           paddr,
                            Bit#(3)                 prot,
                            Bool                    penable,
@@ -410,7 +410,7 @@ module mkAPB_Err(APB_Slave_IFC #(wd_addr, wd_data, wd_user));
     method s_prdata  = ?;
     method s_pslverr = True;
     method s_puser   = ?;
-endmodule:mkAPB_Err
+endmodule:mkapb_err
 
-endpackage:APB_Types
+endpackage:apb_types
 
