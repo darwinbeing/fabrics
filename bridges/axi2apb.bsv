@@ -187,7 +187,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
         rg_child_req_count <= fromInteger(v_apb_bytes);
     end
     if (v_bytes_ratio > 1)begin
-      if (rg_child_req_count == (rg_child_burst -1) || (rg_child_burst == 0))
+      if (rg_child_req_count == (rg_child_burst - fromInteger(v_apb_bytes)) || (rg_child_burst == 0))
         rg_req_beat <= rg_req_beat - 1;
     end
     else
@@ -324,7 +324,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
         rg_child_req_count <= fromInteger(v_apb_bytes);
     end
     if (v_bytes_ratio > 1)begin
-      if (rg_child_req_count == (rg_child_burst -1) || (rg_child_burst == 0)) begin
+      if (rg_child_req_count == (rg_child_burst - fromInteger(v_apb_bytes)) || (rg_child_burst == 0)) begin
         rg_req_beat <= rg_req_beat - 1;
         axi_xactor.fifo_side.o_wr_data.deq;
         `logLevel( bridge, 0, $format("Axi2Apb: AXI4-Wr Poping Wd Request:",

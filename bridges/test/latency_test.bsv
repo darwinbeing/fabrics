@@ -27,7 +27,7 @@ import apb          :: * ;
 `define axi_data 32
 `define axi_id   4
 `define apb_addr 32
-`define apb_data 32
+`define apb_data 16
 `define user     32
 `define nslaves  1
 `define bram_index 15
