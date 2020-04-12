@@ -365,7 +365,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     if(v_bytes_ratio > 1 && rg_child_req_count != rg_child_burst )begin
       new_address = rg_wr_request.awaddr + zeroExtend(rg_child_req_count); 
       rg_child_req_count <= rg_child_req_count + fromInteger(v_apb_bytes);
-      Bit#(TAdd#(TLog#(apb_data),8)) shift = {rg_child_req_count,'d0};
+      Bit#(TAdd#(3,8)) shift = {rg_child_req_count,'d0};
       _write_data = _write_data >> shift;
       _wstrb = _wstrb >> rg_child_req_count;
     end
