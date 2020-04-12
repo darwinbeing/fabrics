@@ -2,6 +2,59 @@
 /*
 Author: Neel Gala, neelgala@incoresemi.com
 Created on: Wednesday 08 April 2020 02:24:19 PM IST
+*/
+/*doc:overview:
+
+This module implements a bridge/adapter which can be used to convert AXI-4 transactions into APB 
+(a.k.a APB4, a.k.a APBv2.0) transactions. This bridges acts as a slave on the AXI4 
+interface and as a master on an ABP interface. Both the protocols are little endian.
+The bridge is parameterized to handle different address and data sizes of either
+side with the following contraints:
+
+1. The AXI4 address size must be greater than or equal to the APB address size.
+2. The AXI4 data size must be greater than of equal to the APB data size.
+3. The AXI4 data and APB data should both be byte-multiples
+
+The bridge also supports spliting of read/write bursts from the AXI4 side to individual requests on
+the APB cluster.
+
+A Connectable instance is also provided which can directly connect an AXI4 master interface to a
+APB-slave interface.
+
+
+Working Principle
+-----------------
+
+Since the APB is a single channel bus and the AXI4 has separate read and write channels, the read
+requests from the AXI4 are given priority over the write requests occurring in the same cycle. At
+any point of time only a single requests (burst read or burst write) are served, and the next
+request is picked up only when the APB has responded to all the bursts from the previous requests.
+
+Differing Address sizes
+^^^^^^^^^^^^^^^^^^^^^^^
+
+When the AXI4 and APB address sizes are different, then the lower bits of the AXI4 addresses are
+used on the APB side. 
+
+Differing Data sizes
+^^^^^^^^^^^^^^^^^^^^
+
+When the AXI4 and APB data sizes are different, each single beat of the AXI4 request (read or write)
+is split into multiple smaller child bursts (sent as individual APB requests) which matches 
+APB data size. A beat is complete only when its corresponding child-bursts are over. The next
+single-beat address is generated based on the burst-mode request and the burst size. Thus, the
+bridge can support all AXI4 burst-modes: incr, fixed and wrap.
+
+When instantiated with same data-sizes, the child-burst logic is ommitted.
+
+Error mapping
+^^^^^^^^^^^^^
+
+The APB PSLVERR is mapped to the AXI4 SLVERR.
+
+.. note::
+  Currently the bridge works for the same clock on either side. Multiple clock domain support will
+  available in future versions
 
 */
 package axi2apb ;
