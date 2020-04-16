@@ -20,7 +20,7 @@ interface Ifc_apb_fabric #( numeric type wd_addr,
                             numeric type wd_user, 
                             numeric type tn_num_slaves );
 
-  interface Ifc_apb_slave #(wd_addr, wd_data, wd_user) from_master;
+  interface Ifc_apb_slave #(wd_addr, wd_data, wd_user) frm_master;
   interface Vector#(tn_num_slaves, Ifc_apb_master #(wd_addr, wd_data, wd_user)) v_to_slaves;
 
 endinterface:Ifc_apb_fabric
@@ -94,7 +94,7 @@ module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
 
   interface v_to_slaves = genWith (f1);
 
-  interface from_master = interface Ifc_apb_slave
+  interface frm_master = interface Ifc_apb_slave
     method Action s_paddr( Bit#(wd_addr)           paddr,
                            Bit#(3)                 prot,
                            Bool                    penable,

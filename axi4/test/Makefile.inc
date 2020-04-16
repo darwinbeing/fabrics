@@ -1,5 +1,5 @@
 ############ DO NOT CHANGE THESE #################
-INCDIR:=../:./common_bsv
+INCDIR:=../:../../common_bsv
 MASTERS=2
 SLAVES=5
 ############# User changes to be done below #################
