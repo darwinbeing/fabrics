@@ -1,4 +1,7 @@
-# Interconnect Fabrics:
+<div class="title-block" style="text-align: center;" align="center">
+
+# Interconnect IPs
+</div>
 
 This repository contains implementations for various bus protocols, fabrics and bridges. All of these
 are designed using Bluespec System Verilog (BSV) the compiler for which is open-source and available
@@ -36,4 +39,4 @@ protocols are:
    burst requests from the AXI4 side and supports all burst-modes. The bridge can also be used to
    connect interfaces with varying sizes (under certain restrictions)
 
-# [Detailed Documentation](https://gitlab.com/incoresemi/ip-datasheets/-/jobs/artifacts/master/raw/incore-datasheets/interconnect_ip.pdf?job=pdf_gen) is hosted on read-the-docs
+# [Detailed Documentation PDF](https://gitlab.com/incoresemi/ip-datasheets/-/jobs/artifacts/master/raw/incore-datasheets/interconnect_ip.pdf?job=pdf_gen) 
