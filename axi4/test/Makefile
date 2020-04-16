@@ -1,9 +1,10 @@
 
 include Makefile.inc
 
-BSVBUILDDIR:=./build/
+BUILD:=./build/
+BSVBUILDDIR:=$(BUILD)/hw/intermediate/
+VERILOGDIR:=$(BUILD)/hw/verilog/
 BSVOUTDIR:=./bin/
-VERILOGDIR:=./verilog/
 define_macros:= -D simulate -D ASSERT=True -D nmasters=$(MASTERS) -D nslaves=$(SLAVES) -D simulate
 
 # ---------- bluespec related settings -----------------------
@@ -20,7 +21,7 @@ BSCCMD:=bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir
 VERILATOR_FLAGS:= -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert \
 	sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
 	-Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
-	--output-split 20000  --output-split-ctrace 10000 --trace
+	--output-split 20000  --output-split-ctrace 10000
 VERILATOR_SPEED:=OPT_SLOW="-O3" OPT_FAST="-O3"
 # -------------------------------------------------------------
 
@@ -54,4 +55,4 @@ simulate:
 
 .PHONY: clean
 clean:
-	rm -rf $(BSVBUILDDIR) $(BSVOUTDIR) *.jou *.log $(VERILOGDIR) obj_dir sim_main.h
+	rm -rf $(BUILD) $(BSVOUTDIR) *.jou *.log obj_dir sim_main.h

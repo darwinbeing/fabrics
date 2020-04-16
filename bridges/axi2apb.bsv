@@ -84,9 +84,9 @@ interface Ifc_axi2apb #(  numeric type axi_id,
                           numeric type apb_addr,
                           numeric type apb_data,
                           numeric type user );
-  (*prefix=""*)
+  (*prefix="AXI4"*)
   interface Ifc_axi4_slave #(axi_id, axi_addr, axi_data, user) axi_side;
-  (*prefix=""*)
+  (*prefix="APB"*)
   interface Ifc_apb_master #(apb_addr, apb_data, user)         apb_side;
 endinterface:Ifc_axi2apb
 

@@ -1,73 +1,76 @@
 stages:
-    - build
-    - verif-release
+    - pre-merge
+    - release
 
-axi4_build:
-  stage: build
-  script:
-      - echo -e "section_start:`date +%s`:source_tools\r\e[0KSetup Initialization"
-      - source /tools/setup.sh
-      - cd axi4/test
-      - ./manager.sh update_deps
-      - echo -e "section_end:`date +%s`:source_tools\r\e[0Ksection_start:`date +%s`:generate_verilog\r\e[0KGenerate Verilog and Verilate"
-      - make generate_verilog link_verilator
-      - echo -e "section_end:`date +%s`:generate_verilog\r\e[0Ksection_start:`date +%s`:sim_out\r\e[0KSimulate"
-      - ./bin/out +mtb +l0
-      - echo -e "section_end:`date +%s`:sim_out\r\e[0K"
-  only:
-    refs:
-        - merge_requests
-  tags:
-      - incore-group
-  except:
-      - schedules
+check-mr-build:
+    stage: pre-merge
+    except: 
+        - schedules
+    script:
+        - echo -e "section_start:`date +%s`:source_tools\r\e[0KSetup Initialization"
+        - source /tools/setup.sh
+        - ./manager.sh update_deps
+        - echo -e "section_end:`date +%s`:source_tools\r\e[0Ksection_start:`date +%s`:axi4_crossbar\r\e[0KCompiling AXI4 Crossbar"
+        - cd axi4/test
+        - make TOP_FILE=axi4_crossbar.bsv TOP_MODULE=mkaxi4_crossbar generate_verilog
+        - echo -e "section_end:`date +%s`:axi4_crossbar\r\e[0Ksection_start:`date +%s`:axi4l_crossbar\r\e[0KCompiling AXI4-Lite Crossbar"
+        - cd ../../axi4_lite/test
+        - make TOP_FILE=axi4l_crossbar.bsv TOP_MODULE=mkaxi4l_crossbar generate_verilog
+        - echo -e "section_end:`date +%s`:axi4l_crossbar\r\e[0Ksection_start:`date +%s`:apb_inter\r\e[0KCompiling APB interconnect"
+        - cd ../../apb/test
+        - make TOP_FILE=apb_interconnect.bsv TOP_MODULE=mkapb_interconnect generate_verilog
+        - echo -e "section_end:`date +%s`:apb_inter\r\e[0Ksection_start:`date +%s`:bridges\r\e[0KCompiling all Bridges"
+        - cd ../../bridges/test
+        - make TOP_FILE=axi2apb_bridge.bsv TOP_MODULE=mkaxi2apb_bridge generate_verilog
+        - make TOP_FILE=axi2axil_bridge.bsv TOP_MODULE=mkaxi2axil_bridge generate_verilog
+        - make TOP_FILE=axil2apb_bridge.bsv TOP_MODULE=mkaxil2apb_bridge generate_verilog
+        - echo -e "section_end:`date +%s`:bridges\r\e[0K"
+    only:
+      refs:
+          - merge_requests
+    tags:
+        - incore-group
 
-apb_build:
-  stage: build
-  script:
-      - echo -e "section_start:`date +%s`:source_tools\r\e[0KSetup Initialization"
-      - source /tools/setup.sh
-      - cd apb/test
-      - ./manager.sh update_deps
-      - echo -e "section_end:`date +%s`:source_tools\r\e[0Ksection_start:`date +%s`:generate_verilog\r\e[0KGenerate Verilog and Verilate"
-      - make generate_verilog link_verilator
-      - echo -e "section_end:`date +%s`:generate_verilog\r\e[0Ksection_start:`date +%s`:sim_out\r\e[0KSimulate"
-      - ./bin/out +mtb +l0
-      - echo -e "section_end:`date +%s`:sim_out\r\e[0K"
-  only:
-    refs:
-        - merge_requests
-  tags:
-      - incore-group
-  except:
-      - schedules
+# checks if the changelog has been updated and the version has also been upgraded
+check-mr-compliance:
+    stage: pre-merge
+    except: 
+        - schedules
+    script:
+        - export NEWVER=$(grep -P "^\[.*?\]" CHANGELOG.rst -m1 | awk '{print $1}' | sed 's/[][]//g');
+        - export CURVER=$(git describe --tags| cut -f1 -d"-")
+        - echo $NEWVER
+        - echo $CURVER        
+        - CURVER=${CURVER//./ }
+        - NEWVER=${NEWVER//./ }
+        - curpatch=$(echo $CURVER | awk '{print $3}')
+        - curminor=$(echo $CURVER | awk '{print $2}')
+        - curmajor=$(echo $CURVER | awk '{print $1}')
+        - newpatch=$(echo $NEWVER | awk '{print $3}')
+        - newminor=$(echo $NEWVER | awk '{print $2}')
+        - newmajor=$(echo $NEWVER | awk '{print $1}')
+        - if [ $newmajor = $curmajor ] && [ $newminor = $curminor ] && [ $newpatch -gt $curpatch ]; then echo "Patch Update Accepted OK"; exit 0; fi
+        - if [ $newmajor = $curmajor ] && [ $newminor = $curminor ] && [ $newpatch -le $curpatch ]; then echo "Revise Patch Atleast!"; exit 1; fi
+        - if [ $newmajor = $curmajor ] && [ $newminor -gt $curminor ] && [ $newpatch = 0 ]; then echo "Minor Update Accepted OK!"; exit 0; fi
+        - if [ $newmajor = $curmajor ] && [ $newminor -gt $curminor ] && [ $newpatch != 0 ]; then echo "For Minor changes the patches should be 0"; exit 1; fi
+        - if [ $newmajor = $curmajor ] && [ $newminor -lt $curminor ]; then echo "Minor version should greater than previuos"; exit 1; fi
+        - if [ $newmajor -gt $curmajor ] && [ $newminor = 0 ] && [ $newpatch = 0 ]; then echo "Major Updated Accepted OK"; exit 0; fi
+        - echo  "For Major updates Minor and Patches should be 0"
+        - exit 1
+    only:
+      refs:
+          - merge_requests
+    tags:
+        - incore-group
 
-axi4_verif_release:
-  stage: verif-release
-  script:
-      - source /tools/setup.sh
-      - cd axi4/test
-      - ./manager.sh update_deps
-      - make MASTERS=1 SLAVES=1 TOP_MODULE=mkinst_onlyfabric TOP_FILE=synth_instance.bsv VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics/axi4 generate_verilog
-  only:
-    refs:
-        - master
-  tags:
-    - incore-group
-  except:
-    - schedules
-
-apb_verif_release:
-  stage: verif-release
-  script:
-      - source /tools/setup.sh
-      - cd apb/test
-      - ./manager.sh update_deps
-      - make MASTERS=1 SLAVES=1 TOP_MODULE=mkinst_onlyfabric TOP_FILE=synth_instance.bsv VERILOGDIR=/scratch/gitlab-builds/releases/incore/uncore/fabrics/apb generate_verilog
-  only:
-    refs:
-        - master
-  tags:
-    - incore-group
-  except:
-    - schedules
+release:
+    stage: release
+    script:
+        - python3 /scratch/version-extract-rst.py
+    only:
+        refs:
+            - master
+    tags:
+        - incore-group
+    except:
+        - schedules

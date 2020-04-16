@@ -1,9 +1,10 @@
 
 include Makefile.inc
 
-BSVBUILDDIR:=./build/
+BUILD:=build
+BSVBUILDDIR:=$(BUILD)/hw/intermediate
 BSVOUTDIR:=./bin/
-VERILOGDIR:=./verilog/
+VERILOGDIR:=$(BUILD)/hw/verilog/
 define_macros:= -D simulate -D ASSERT=True -D nmasters=$(MASTERS) -D nslaves=$(SLAVES) -D simulate
 
 # ---------- bluespec related settings -----------------------
@@ -54,4 +55,4 @@ simulate:
 
 .PHONY: clean
 clean:
-	rm -rf $(BSVBUILDDIR) $(BSVOUTDIR) *.jou *.log $(VERILOGDIR) obj_dir sim_main.h
+	rm -rf $(BUILD) $(BSVOUTDIR) *.jou *.log obj_dir sim_main.h

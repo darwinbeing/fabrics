@@ -1,7 +1,6 @@
 build
 bin
 logs
-verilog
 obj_dir
 common_bsv
 sim_main.h

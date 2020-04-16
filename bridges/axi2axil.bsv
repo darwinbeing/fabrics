@@ -95,7 +95,9 @@ interface Ifc_axi2axil #( numeric type axi_id,
                           numeric type axil_addr,
                           numeric type axil_data,
                           numeric type user );
+  (*prefix="AXI4"*)
   interface Ifc_axi4_slave   #(axi_id, axi_addr, axi_data, user)   axi_side;
+  (*prefix="AXI4L"*)
   interface Ifc_axi4l_master #(axil_addr, axil_data, user)         axil_side;
 endinterface:Ifc_axi2axil
 

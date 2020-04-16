@@ -34,24 +34,47 @@ interface Ifc_axi4_fabric #(numeric type tn_num_masters,
 			                      numeric type wd_data,
 			                      numeric type wd_user);
    // From masters
+   (*prefix="frm_master"*)
    interface Vector #(tn_num_masters, Ifc_axi4_slave #(wd_id, wd_addr, wd_data, wd_user))  
                                                                                     v_from_masters;
 
    // To slaves
+   (*prefix="to_slave"*)
    interface Vector #(tn_num_slaves,  Ifc_axi4_master #(wd_id, wd_addr, wd_data, wd_user)) 
                                                                                     v_to_slaves;
 endinterface:Ifc_axi4_fabric
 
+
+function Vector#(n, Bool) fn_rr_arbiter(Vector#(n, Bool) requests, Bit#(TLog#(n)) lowpriority);
+   let nports = valueOf(n);
+   
+   function f(bspg,b);
+      match {.bs, .p, .going} = bspg;
+      if (going) begin
+	 if (b) return tuple3(1 << p, ?, False);
+	 else   return tuple3(0, (p == fromInteger(nports-1) ? 0 : p+1), True);
+      end
+      else return tuple3(bs, ?, False);
+   endfunction
+   
+   match {.bits, .*, .* } = foldl(f, tuple3(?, lowpriority, True), reverse(rotateBy(reverse(requests), unpack(lowpriority))));
+   return unpack(bits);
+endfunction
 // ----------------------------------------------------------------
 // The Fabric module
-// The function parameter is an address-decode function, which
-// returns (True,  slave-port-num)  if address is mapped to slave-port-num
-//         (False, ?)               if address is unmapped to any slave port
 
+// the reason for having two memory map functions is to avoid creating redundant connections on the
+// for read-only and write-only devices. The connections could have been avoided using a simple
+// read and write mask, but then a non-existent connection should end up at the err-slave which
+// would not be possible bu using masks. 
 module mkaxi4_fabric #(
-    function Bit #(TMax#(TLog #(tn_num_slaves), 1)) fn_addr_to_slave_num (Bit #(wd_addr) addr), 
-    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask , 
-    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
+    function Bit #(TMax#(TLog #(tn_num_slaves), 1)) fn_rd_memory_map (Bit #(wd_addr) addr), 
+    function Bit #(TMax#(TLog #(tn_num_slaves), 1)) fn_wr_memory_map (Bit #(wd_addr) addr),
+    parameter Bit#(tn_num_slaves)  read_slave,
+    parameter Bit#(tn_num_slaves)  write_slave,
+    parameter Bit#(tn_num_masters) fixed_priority_rd,
+    parameter Bit#(tn_num_masters) fixed_priority_wr
+    )
 		(Ifc_axi4_fabric #(tn_num_masters, tn_num_slaves, wd_id, wd_addr, wd_data, wd_user))
 
   provisos ( Max #(TLog #(tn_num_masters) , 1, log_nm),
@@ -93,6 +116,24 @@ module mkaxi4_fabric #(
   // On an mi->sj read-transaction, records (mi,arlen) for slave sj
   Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    v_f_rd_mis <- replicateM (mkSizedFIFOF (8));
 
+  /*doc:reg: round robin counter for read requests*/
+  Reg#(Bit#(TLog#(tn_num_masters))) rg_rd_master_select[num_masters] <- mkCReg(num_masters, 0);
+
+  /*doc:vec: vector of wires indicating which slave is a read-master trying to lock*/
+  Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_rd_reqs <- replicateM(mkDWire(0));
+  /*doc:vec: a matrix of wires indicating which read-master has been granted permission to access which
+   * slave */
+  Vector#(tn_num_slaves , Vector#(tn_num_masters, Wire#(Bool))) wr_rd_grant 
+                                                        <- replicateM(replicateM(mkDWire(True)));
+  /*doc:reg: round robin counter for write-requests*/
+  Reg#(Bit#(TLog#(tn_num_masters))) rg_wr_master_select[num_masters] <- mkCReg(num_masters, 0);
+
+  /*doc:vec: vector of wires indicating which slave is a write-master trying to lock*/
+  Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_wr_reqs <- replicateM(mkDWire(0));
+  /*doc:vec: a matrix of wires indicating which write-master has been granted permission to access which
+   * slave */
+  Vector#(tn_num_slaves , Vector#(tn_num_masters, Wire#(Bool))) wr_wr_grant 
+                                                        <- replicateM(replicateM(mkDWire(True)));
   // ----------------------------------------------------------------
   // BEHAVIOR
 
@@ -101,23 +142,73 @@ module mkaxi4_fabric #(
 
   function Bool fv_mi_has_wr_for_sj (Integer mi, Integer sj);
     let addr       = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
-    let slave_num  = fn_addr_to_slave_num (addr);
+    let slave_num  = fn_wr_memory_map (addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_wr_for_sj
 
   function Bool fv_mi_has_rd_for_sj (Integer mi, Integer sj);
     let addr       = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
-    let slave_num  = fn_addr_to_slave_num (addr);
+    let slave_num  = fn_rd_memory_map (addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_rd_for_sj
+
+  for (Integer mi = 0; mi< num_masters; mi = mi + 1) begin
+    /*doc:rule: this rule will update a vector for each master making a read-request to indicate
+     * which slave is being targetted*/
+    rule rl_capture_rd_slave_contention;
+      Bit#(tn_num_slaves) _t = 0;
+      let addr                   = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
+      _t[fn_rd_memory_map(addr)] = 1;
+      wr_master_rd_reqs[mi]    <= _t;
+    endrule:rl_capture_rd_slave_contention
+    /*doc:rule: this rule will update a vector for each master making a write-request to indicate
+     * which slave is being targetted*/
+    rule rl_capture_wr_slave_contention;
+      Bit#(tn_num_slaves) _t = 0;
+      let addr                   = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
+      _t[fn_wr_memory_map(addr)] = 1;
+      wr_master_wr_reqs[mi]    <= _t;
+    endrule:rl_capture_wr_slave_contention
+  end
+
+  /*doc:rule: This rule will resolve read contentions per slave using a round-robin arbitration policy*/
+  rule rl_rd_round_robin_arbiter (&fixed_priority_rd == 0);
+    Vector#(tn_num_masters, Vector#(tn_num_slaves,Bool)) _t = unpack(0);
+    for (Integer mi = 0; mi< num_masters; mi = mi + 1) begin
+      _t[mi] = unpack(wr_master_rd_reqs[mi]);
+    end
+    let trans = transpose(_t);
+    for (Integer i = 0; i< num_slaves; i = i + 1) begin
+      let _n = fn_rr_arbiter(trans[i], rg_rd_master_select[0]);
+      for (Integer j = 0; j< num_masters; j = j + 1) begin
+        wr_rd_grant[i][j] <= _n[j] || unpack(fixed_priority_rd[j]);
+      end
+    end
+  endrule:rl_rd_round_robin_arbiter
+  
+  /*doc:rule: This rule will resolve write contentions per slave using a round-robin arbitration policy*/
+  rule rl_wr_round_robin_arbiter (&fixed_priority_wr == 0);
+    Vector#(tn_num_masters, Vector#(tn_num_slaves,Bool)) _t = unpack(0);
+    for (Integer mi = 0; mi< num_masters; mi = mi + 1) begin
+      _t[mi] = unpack(wr_master_wr_reqs[mi]);
+    end
+    let trans = transpose(_t);
+    for (Integer i = 0; i< num_slaves; i = i + 1) begin
+      let _n = fn_rr_arbiter(trans[i], rg_wr_master_select[0]);
+      for (Integer j = 0; j< num_masters; j = j + 1) begin
+        wr_wr_grant[i][j] <= _n[j] || unpack(fixed_priority_wr[j]);
+      end
+    end
+  endrule:rl_wr_round_robin_arbiter
 
   // ================================================================
   // Wr requests (AW, W and B channels)
 
   // Wr requests to legal slaves (AW channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
-    for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && wr_mask[mi][sj] == 1);
+    for (Integer sj = 0; sj < num_slaves ; sj = sj + 1)
+    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && wr_wr_grant[sj][mi] && 
+    	                                    write_slave[sj] == 1 );
     	  // Move the AW transaction
     	  AXI4_wr_addr #(wd_id, wd_addr, wd_user) 
     	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
@@ -129,6 +220,12 @@ module mkaxi4_fabric #(
     	  // Book-keeping
     	  v_f_wr_mis        [sj].enq (fromInteger (mi));
     	  v_f_wr_sjs        [mi].enq (fromInteger (sj));
+	      if (&fixed_priority_wr == 0) begin
+  	      if (mi == num_masters - 1)
+	          rg_wr_master_select[mi] <= 0;
+	        else
+	          rg_wr_master_select[mi] <= fromInteger(mi+1);
+	      end
    
         `logLevel( fabric, 0, $format("FABRIC: WRA: master[%2d] -> slave[%2d]", mi, sj))
     	  `logLevel( fabric, 0, $format("FABRIC: WRA: ",fshow (a) ))
@@ -139,8 +236,7 @@ module mkaxi4_fabric #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
-    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && 
-                                              wr_mask[mi][sj] == 1);
+    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && write_slave[sj] == 1 );
       
       AXI4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
@@ -158,10 +254,9 @@ module mkaxi4_fabric #(
   // Wr responses from slaves to masters (B channel)
 
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
-    for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
+    for (Integer sj = 0; sj < num_slaves ; sj = sj + 1)
     	rule rl_wr_resp_slave_to_master (   (v_f_wr_mis [sj].first == fromInteger (mi)) &&
-	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj))
-	 	                             		      && wr_mask[mi][sj] == 1);
+                                  	 	    (v_f_wr_sjs [mi].first == fromInteger (sj)) && write_slave[sj] == 1 );
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
 	      AXI4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
@@ -176,8 +271,8 @@ module mkaxi4_fabric #(
 
   // Rd requests to legal slaves (AR channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
-    for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && rd_mask[mi][sj] == 1 );
+    for (Integer sj = 0; sj < num_slaves ; sj = sj + 1)
+      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && wr_rd_grant[sj][mi] && read_slave[sj] == 1 );
 	      
 	      AXI4_rd_addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
@@ -186,6 +281,12 @@ module mkaxi4_fabric #(
 	      v_f_rd_sjs [mi].enq (fromInteger (sj));
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))
+	      if (&fixed_priority_rd == 0) begin
+  	      if (mi == num_masters - 1)
+	          rg_rd_master_select[mi] <= 0;
+	        else
+	          rg_rd_master_select[mi] <= fromInteger(mi+1);
+	      end
 	    endrule: rl_rd_xaction_master_to_slave
 
   // Rd responses from slaves to masters (R channel)
@@ -194,8 +295,7 @@ module mkaxi4_fabric #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
 
 	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
-	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))
-	 			                              && rd_mask[mi][sj] == 1 );
+                              	 			(v_f_rd_sjs [mi].first == fromInteger (sj)) && read_slave[sj] == 1  );
 
 	      AXI4_rd_data #(wd_id, wd_data, wd_user) 
 	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
@@ -224,9 +324,13 @@ module mkaxi4_fabric #(
 endmodule
 
 module mkaxi4_fabric_2 #(
-    function Bit #(TLog #(tn_num_slaves)) fn_addr_to_slave_num (Bit #(wd_addr) addr), 
-    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) wr_mask ,
-    parameter Vector#(tn_num_masters, Bit#(tn_num_slaves)) rd_mask )
+    function Bit #(TMax#(TLog #(tn_num_slaves), 1)) fn_rd_memory_map (Bit #(wd_addr) addr), 
+    function Bit #(TMax#(TLog #(tn_num_slaves), 1)) fn_wr_memory_map (Bit #(wd_addr) addr),
+    parameter Bit#(tn_num_slaves)  read_slave,
+    parameter Bit#(tn_num_slaves)  write_slave,
+    parameter Bit#(tn_num_masters) fixed_priority_rd,
+    parameter Bit#(tn_num_masters) fixed_priority_wr
+    )
 		(Ifc_axi4_fabric #(tn_num_masters, tn_num_slaves, wd_id, wd_addr, wd_data, wd_user))
 
   provisos ( Max #(TLog #(tn_num_masters) , 1, log_nm),
@@ -268,6 +372,24 @@ module mkaxi4_fabric_2 #(
   // On an mi->sj read-transaction, records (mi,arlen) for slave sj
   Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    v_f_rd_mis <- replicateM (mkSizedFIFOF (8));
 
+  /*doc:reg: round robin counter for read requests*/
+  Reg#(Bit#(TLog#(tn_num_masters))) rg_rd_master_select[num_masters] <- mkCReg(num_masters, 0);
+
+  /*doc:vec: vector of wires indicating which slave is a read-master trying to lock*/
+  Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_rd_reqs <- replicateM(mkDWire(0));
+  /*doc:vec: a matrix of wires indicating which read-master has been granted permission to access which
+   * slave */
+  Vector#(tn_num_slaves , Vector#(tn_num_masters, Wire#(Bool))) wr_rd_grant 
+                                                        <- replicateM(replicateM(mkDWire(True)));
+  /*doc:reg: round robin counter for write-requests*/
+  Reg#(Bit#(TLog#(tn_num_masters))) rg_wr_master_select[num_masters] <- mkCReg(num_masters, 0);
+
+  /*doc:vec: vector of wires indicating which slave is a write-master trying to lock*/
+  Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_wr_reqs <- replicateM(mkDWire(0));
+  /*doc:vec: a matrix of wires indicating which write-master has been granted permission to access which
+   * slave */
+  Vector#(tn_num_slaves , Vector#(tn_num_masters, Wire#(Bool))) wr_wr_grant 
+                                                        <- replicateM(replicateM(mkDWire(True)));
   // ----------------------------------------------------------------
   // BEHAVIOR
 
@@ -276,15 +398,65 @@ module mkaxi4_fabric_2 #(
 
   function Bool fv_mi_has_wr_for_sj (Integer mi, Integer sj);
     let addr       = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
-    let slave_num  = fn_addr_to_slave_num (addr);
+    let slave_num  = fn_wr_memory_map(addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_wr_for_sj
 
   function Bool fv_mi_has_rd_for_sj (Integer mi, Integer sj);
     let addr       = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
-    let slave_num  = fn_addr_to_slave_num (addr);
+    let slave_num  = fn_rd_memory_map(addr);
     return (slave_num == fromInteger (sj));
   endfunction:fv_mi_has_rd_for_sj
+
+  for (Integer mi = 0; mi< num_masters; mi = mi + 1) begin
+    /*doc:rule: this rule will update a vector for each master making a read-request to indicate
+     * which slave is being targetted*/
+    rule rl_capture_rd_slave_contention;
+      Bit#(tn_num_slaves) _t = 0;
+      let addr                   = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
+      _t[fn_rd_memory_map(addr)] = 1;
+      wr_master_rd_reqs[mi]    <= _t;
+    endrule:rl_capture_rd_slave_contention
+    /*doc:rule: this rule will update a vector for each master making a write-request to indicate
+     * which slave is being targetted*/
+    rule rl_capture_wr_slave_contention;
+      Bit#(tn_num_slaves) _t = 0;
+      let addr                   = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
+      _t[fn_wr_memory_map(addr)] = 1;
+      wr_master_wr_reqs[mi]    <= _t;
+    endrule:rl_capture_wr_slave_contention
+  end
+
+  /*doc:rule: This rule will resolve read contentions per slave using a round-robin arbitration policy*/
+  rule rl_rd_round_robin_arbiter (&fixed_priority_rd == 1);
+    Vector#(tn_num_masters, Vector#(tn_num_slaves,Bool)) _t = unpack(0);
+    for (Integer mi = 0; mi< num_masters; mi = mi + 1) begin
+      _t[mi] = unpack(wr_master_rd_reqs[mi]);
+    end
+    let trans = transpose(_t);
+    for (Integer i = 0; i< num_slaves; i = i + 1) begin
+      let _n = fn_rr_arbiter(trans[i], rg_rd_master_select[0]);
+      for (Integer j = 0; j< num_masters; j = j + 1) begin
+        wr_rd_grant[i][j] <= _n[j] || unpack(fixed_priority_rd[j]);
+      end
+    end
+  endrule:rl_rd_round_robin_arbiter
+  
+  /*doc:rule: This rule will resolve write contentions per slave using a round-robin arbitration policy*/
+  rule rl_wr_round_robin_arbiter (&fixed_priority_wr == 1);
+    Vector#(tn_num_masters, Vector#(tn_num_slaves,Bool)) _t = unpack(0);
+    for (Integer mi = 0; mi< num_masters; mi = mi + 1) begin
+      _t[mi] = unpack(wr_master_wr_reqs[mi]);
+    end
+    let trans = transpose(_t);
+    for (Integer i = 0; i< num_slaves; i = i + 1) begin
+      let _n = fn_rr_arbiter(trans[i], rg_wr_master_select[0]);
+      for (Integer j = 0; j< num_masters; j = j + 1) begin
+        wr_wr_grant[i][j] <= _n[j] || unpack(fixed_priority_wr[j]);
+      end
+    end
+  endrule:rl_wr_round_robin_arbiter
+
 
   // ================================================================
   // Wr requests (AW, W and B channels)
@@ -292,7 +464,7 @@ module mkaxi4_fabric_2 #(
   // Wr requests to legal slaves (AW channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && wr_mask[mi][sj] == 1 );
+    	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && write_slave[sj] == 1);
     	  // Move the AW transaction
     	  AXI4_wr_addr #(wd_id, wd_addr, wd_user) 
     	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
@@ -304,6 +476,13 @@ module mkaxi4_fabric_2 #(
     	  // Book-keeping
     	  v_f_wr_mis        [sj].enq (fromInteger (mi));
     	  v_f_wr_sjs        [mi].enq (fromInteger (sj));
+	      
+	      if (&fixed_priority_wr == 0) begin
+  	      if (mi == num_masters - 1)
+	          rg_wr_master_select[mi] <= 0;
+	        else
+	          rg_wr_master_select[mi] <= fromInteger(mi+1);
+	      end
    
         `logLevel( fabric, 0, $format("FABRIC: WRA: master[%2d] -> slave[%2d]", mi, sj))
     	  `logLevel( fabric, 0, $format("FABRIC: WRA: ",fshow (a) ))
@@ -314,8 +493,8 @@ module mkaxi4_fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
-    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && 
-                                              wr_mask[mi][sj] == 1  );
+    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj)
+                                              && write_slave[sj] == 1 );
       
       AXI4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
@@ -335,8 +514,8 @@ module mkaxi4_fabric_2 #(
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_resp_slave_to_master (   (v_f_wr_mis [sj].first == fromInteger (mi)) &&
-	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj))
-	 	                             		      && wr_mask[mi][sj] == 1 );
+	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj)) &&
+	 	                             		      write_slave[sj] == 1);
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
 	      AXI4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
@@ -352,13 +531,19 @@ module mkaxi4_fabric_2 #(
   // Rd requests to legal slaves (AR channel)
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && rd_mask[mi][sj] == 1 );
+      rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && read_slave[sj] == 1);
 	      
 	      AXI4_rd_addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      v_f_rd_mis [sj].enq (fromInteger (mi));
 	      v_f_rd_sjs [mi].enq (fromInteger (sj));
+	      if (&fixed_priority_rd == 0) begin
+  	      if (mi == num_masters - 1)
+	          rg_rd_master_select[mi] <= 0;
+	        else
+	          rg_rd_master_select[mi] <= fromInteger(mi+1);
+	      end
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))
 	    endrule: rl_rd_xaction_master_to_slave
@@ -369,8 +554,8 @@ module mkaxi4_fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
 
 	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
-	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))
-	 			                              && rd_mask[mi][sj] == 1 );
+	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))&& 
+	 			                               read_slave[sj] == 1);
 
 	      AXI4_rd_data #(wd_id, wd_data, wd_user) 
 	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);

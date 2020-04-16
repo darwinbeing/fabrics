@@ -5,9 +5,9 @@ VERSION=0.1.0
 
 if [ -z "$inc_token" ]
 then
-  REPO_BASE=https://gitlab.com/incoresemi/uncore
+  REPO_BASE=https://gitlab.com/incoresemi/blocks
 else
-  REPO_BASE=https://incoretoken:$inc_token@gitlab.com/incoresemi/uncore
+  REPO_BASE=https://incoretoken:$inc_token@gitlab.com/incoresemi/blocks
 fi
 
 DEPS_FOLDER=.
