@@ -81,7 +81,7 @@ interface Ifc_axil2apb #( numeric type axil_addr,
                           numeric type apb_data,
                           numeric type user );
   (*prefix="AXI4L"*)
-  interface Ifc_axi4l_slave #(axil_addr, axil_data, user) axil_side;
+  interface Ifc_axi4l_slave #(axil_addr, axil_data, user) axi4l_side;
   (*prefix="APB"*)
   interface Ifc_apb_master #(apb_addr, apb_data, user)         apb_side;
 endinterface:Ifc_axil2apb
@@ -322,7 +322,7 @@ module mkaxil2apb(Ifc_axil2apb#(axil_addr, axil_data, apb_addr, apb_data, user))
     `logLevel( bridge, 0, $format("Axil2Apb: APB-Resp:", fshow_apb_resp(apb_response)))
   endrule:rl_write_response_to_axi
 
-  interface axil_side = axil_xactor.axil_side;
+  interface axi4l_side = axil_xactor.axi4l_side;
   interface apb_side = apb_xactor.apb_side;
 
 endmodule:mkaxil2apb
@@ -343,11 +343,11 @@ instance Connectable #(Ifc_axi4l_master #(axil_addr, axil_data, user),
             Add#(b__, 8, axil_addr),
             Mul#(apb_data, c__, axil_data) // Apb is a byte multiple of axil_data
           );
-  module mkConnection #(Ifc_axi4l_master #(axil_addr, axil_data, user) axil_side,
+  module mkConnection #(Ifc_axi4l_master #(axil_addr, axil_data, user) axi4l_side,
                        Ifc_apb_slave #(apb_addr, apb_data, user)         apb_side)
                        (Empty);
     Ifc_axil2apb #(axil_addr, axil_data, apb_addr, apb_data, user) bridge <- mkaxil2apb;
-    mkConnection(axil_side, bridge.axil_side);
+    mkConnection(axi4l_side, bridge.axi4l_side);
     mkConnection(apb_side, bridge.apb_side);
   endmodule:mkConnection
 endinstance:Connectable
@@ -369,9 +369,9 @@ instance Connectable #(Ifc_apb_slave    #(apb_addr, apb_data, user),
             Mul#(apb_data, c__, axil_data) // Apb is a byte multiple of axil_data
           );
   module mkConnection #(Ifc_apb_slave #(apb_addr, apb_data, user)         apb_side,
-                        Ifc_axi4l_master #(axil_addr, axil_data, user) axil_side )
+                        Ifc_axi4l_master #(axil_addr, axil_data, user) axi4l_side )
                        (Empty);
-    mkConnection(axil_side, apb_side);
+    mkConnection(axi4l_side, apb_side);
   endmodule:mkConnection
 endinstance:Connectable
 

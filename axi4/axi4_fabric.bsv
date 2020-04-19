@@ -210,7 +210,7 @@ module mkaxi4_fabric #(
     	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && wr_wr_grant[sj][mi] && 
     	                                    write_slave[sj] == 1 );
     	  // Move the AW transaction
-    	  AXI4_wr_addr #(wd_id, wd_addr, wd_user) 
+    	  Axi4_wr_addr #(wd_id, wd_addr, wd_user) 
     	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
     	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
@@ -238,7 +238,7 @@ module mkaxi4_fabric #(
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
     rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && write_slave[sj] == 1 );
       
-      AXI4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
+      Axi4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
       // If sj is a legal slave, send it the data beat, else drop it.
       xactors_to_slaves [sj].fifo_side.i_wr_data.enq (d);
@@ -259,7 +259,7 @@ module mkaxi4_fabric #(
                                   	 	    (v_f_wr_sjs [mi].first == fromInteger (sj)) && write_slave[sj] == 1 );
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
-	      AXI4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
+	      Axi4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
 
 	      xactors_from_masters [mi].fifo_side.i_wr_resp.enq (b);
         `logLevel( fabric, 0, $format("FABRIC: WRB: slave[%2d] -> master[%2d]",sj, mi))
@@ -274,7 +274,7 @@ module mkaxi4_fabric #(
     for (Integer sj = 0; sj < num_slaves ; sj = sj + 1)
       rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && wr_rd_grant[sj][mi] && read_slave[sj] == 1 );
 	      
-	      AXI4_rd_addr #(wd_id, wd_addr, wd_user) 
+	      Axi4_rd_addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      v_f_rd_mis [sj].enq (fromInteger (mi));
@@ -297,7 +297,7 @@ module mkaxi4_fabric #(
 	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
                               	 			(v_f_rd_sjs [mi].first == fromInteger (sj)) && read_slave[sj] == 1  );
 
-	      AXI4_rd_data #(wd_id, wd_data, wd_user) 
+	      Axi4_rd_data #(wd_id, wd_data, wd_user) 
 	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
 
 	      if ( r.rlast ) begin
@@ -315,9 +315,9 @@ module mkaxi4_fabric #(
   // INTERFACE
 
   function Ifc_axi4_slave  #(wd_id, wd_addr, wd_data, wd_user) f1 (Integer j)
-     = xactors_from_masters [j].axi_side;
+     = xactors_from_masters [j].axi4_side;
   function Ifc_axi4_master #(wd_id, wd_addr, wd_data, wd_user) f2 (Integer j)
-     = xactors_to_slaves    [j].axi_side;
+     = xactors_to_slaves    [j].axi4_side;
 
   interface v_from_masters = genWith (f1);
   interface v_to_slaves    = genWith (f2);
@@ -466,7 +466,7 @@ module mkaxi4_fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     	rule rl_wr_xaction_master_to_slave (fv_mi_has_wr_for_sj (mi, sj) && write_slave[sj] == 1);
     	  // Move the AW transaction
-    	  AXI4_wr_addr #(wd_id, wd_addr, wd_user) 
+    	  Axi4_wr_addr #(wd_id, wd_addr, wd_user) 
     	      a <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_addr);
     	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
@@ -496,7 +496,7 @@ module mkaxi4_fabric_2 #(
     rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj)
                                               && write_slave[sj] == 1 );
       
-      AXI4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
+      Axi4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
       // If sj is a legal slave, send it the data beat, else drop it.
       xactors_to_slaves [sj].fifo_side.i_wr_data.enq (d);
@@ -518,7 +518,7 @@ module mkaxi4_fabric_2 #(
 	 	                             		      write_slave[sj] == 1);
 	      v_f_wr_mis [sj].deq;
 	      v_f_wr_sjs [mi].deq;
-	      AXI4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
+	      Axi4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
 
 	      xactors_from_masters [mi].fifo_side.i_wr_resp.enq (b);
         `logLevel( fabric, 0, $format("FABRIC: WRB: slave[%2d] -> master[%2d]",sj, mi))
@@ -533,7 +533,7 @@ module mkaxi4_fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
       rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && read_slave[sj] == 1);
 	      
-	      AXI4_rd_addr #(wd_id, wd_addr, wd_user) 
+	      Axi4_rd_addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      v_f_rd_mis [sj].enq (fromInteger (mi));
@@ -557,7 +557,7 @@ module mkaxi4_fabric_2 #(
 	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))&& 
 	 			                               read_slave[sj] == 1);
 
-	      AXI4_rd_data #(wd_id, wd_data, wd_user) 
+	      Axi4_rd_data #(wd_id, wd_data, wd_user) 
 	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
 
 	      if ( r.rlast ) begin
@@ -575,9 +575,9 @@ module mkaxi4_fabric_2 #(
   // INTERFACE
 
   function Ifc_axi4_slave  #(wd_id, wd_addr, wd_data, wd_user) f1 (Integer j)
-     = xactors_from_masters [j].axi_side;
+     = xactors_from_masters [j].axi4_side;
   function Ifc_axi4_master #(wd_id, wd_addr, wd_data, wd_user) f2 (Integer j)
-     = xactors_to_slaves    [j].axi_side;
+     = xactors_to_slaves    [j].axi4_side;
 
   interface v_from_masters = genWith (f1);
   interface v_to_slaves    = genWith (f2);

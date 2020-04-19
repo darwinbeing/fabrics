@@ -290,9 +290,9 @@ module mkaxi4l_fabric #(
   // INTERFACE
 
   function Ifc_axi4l_slave  #( wd_addr, wd_data, wd_user) f1 (Integer j)
-     = xactors_from_masters [j].axil_side;
+     = xactors_from_masters [j].axi4l_side;
   function Ifc_axi4l_master #( wd_addr, wd_data, wd_user) f2 (Integer j)
-     = xactors_to_slaves    [j].axil_side;
+     = xactors_to_slaves    [j].axi4l_side;
 
   interface v_from_masters = genWith (f1);
   interface v_to_slaves    = genWith (f2);
@@ -522,9 +522,9 @@ module mkaxi4l_fabric_2 #(
   // INTERFACE
 
   function Ifc_axi4l_slave  #( wd_addr, wd_data, wd_user) f1 (Integer j)
-     = xactors_from_masters [j].axil_side;
+     = xactors_from_masters [j].axi4l_side;
   function Ifc_axi4l_master #( wd_addr, wd_data, wd_user) f2 (Integer j)
-     = xactors_to_slaves    [j].axil_side;
+     = xactors_to_slaves    [j].axi4l_side;
 
   interface v_from_masters = genWith (f1);
   interface v_to_slaves    = genWith (f2);
