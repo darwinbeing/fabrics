@@ -76,7 +76,7 @@ module mkinst_withxactors (Ifc_withXactors);
   let fabric <- mkinst_onlyfabric; 
 
   for (Integer i = 0; i<`tn_num_masters; i = i + 1) begin
-    mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);
+    mkConnection(fabric.v_from_masters[i],m_xactors[i].axi4_side);
   end
   for (Integer i = 0; i<`tn_num_slaves; i = i + 1) begin
     mkConnection(fabric.v_to_slaves[i],s_err[i]);
@@ -108,7 +108,7 @@ module mkinst_withxactors_2 (Ifc_withXactors);
   let fabric <- mkinst_onlyfabric_2; 
 
   for (Integer i = 0; i<`tn_num_masters; i = i + 1) begin
-    mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);
+    mkConnection(fabric.v_from_masters[i],m_xactors[i].axi4_side);
   end
   for (Integer i = 0; i<`tn_num_slaves; i = i + 1) begin
     mkConnection(fabric.v_to_slaves[i],s_err[i]);
@@ -120,9 +120,9 @@ module mkinst_withxactors_2 (Ifc_withXactors);
   interface m_fifo = genWith(f1);
 endmodule:mkinst_withxactors_2
 
-typedef AXI4_rd_addr #(`wd_id, `wd_addr, `wd_user) ARReq;
-typedef AXI4_wr_addr #(`wd_id, `wd_addr, `wd_user) AWReq;
-typedef AXI4_wr_data #(`wd_data, `wd_user)          AWDReq;
+typedef Axi4_rd_addr #(`wd_id, `wd_addr, `wd_user) ARReq;
+typedef Axi4_wr_addr #(`wd_id, `wd_addr, `wd_user) AWReq;
+typedef Axi4_wr_data #(`wd_data, `wd_user)          AWDReq;
 
   
 module mkTb(Empty);
@@ -139,19 +139,19 @@ module mkTb(Empty);
       seq
         action
           let stime <- $stime;
-          ARReq request = AXI4_rd_addr {araddr:'h1000, arlen:7, arsize:2, arburst:axburst_incr};
+          ARReq request = Axi4_rd_addr {araddr:'h1000, arlen:7, arsize:2, arburst:axburst_incr};
           inst1.m_fifo[0].i_rd_addr.enq(request);
           $display("[%10d]\tSending Rd Req",$time, fshow_axi4_rd_addr(request));
         endaction
         action
           let stime <- $stime;
-          AWReq request = AXI4_wr_addr {awaddr:'h1000, awlen:7, awsize:2, awburst:axburst_incr};
+          AWReq request = Axi4_wr_addr {awaddr:'h1000, awlen:7, awsize:2, awburst:axburst_incr};
           inst1.m_fifo[0].i_wr_addr.enq(request);
           $display("[%10d]\tSending Wr Req",$time, fshow_axi4_wr_addr(request));
         endaction
         for(iter1 <= 1; iter1 <= 8; iter1 <= iter1 + 1)
           action
-            AWDReq req = AXI4_wr_data{wdata:rg_axi_data, wstrb:'1, wlast: iter1 == 8};
+            AWDReq req = Axi4_wr_data{wdata:rg_axi_data, wstrb:'1, wlast: iter1 == 8};
             inst1.m_fifo[0].i_wr_data.enq(req);
             $display("[%10d]\tSending WrD Req",$time, fshow_axi4_wr_data(req));
             rg_axi_data <= rg_axi_data + 'h11111111;
@@ -184,7 +184,7 @@ module mkTb(Empty);
       seq
         action
           let stime <- $stime;
-          ARReq request = AXI4_rd_addr {araddr:'h000, arlen:0, arsize:2, arburst:axburst_incr};
+          ARReq request = Axi4_rd_addr {araddr:'h000, arlen:0, arsize:2, arburst:axburst_incr};
           for (Integer i = 0; i<`tn_num_masters; i = i + 1) begin
             request.araddr = request.araddr + 'h100;
             inst1.m_fifo[i].i_rd_addr.enq(request);
@@ -193,7 +193,7 @@ module mkTb(Empty);
         endaction
         action
           let stime <- $stime;
-          ARReq request = AXI4_rd_addr {araddr:'h1500, arlen:0, arsize:2, arburst:axburst_incr};
+          ARReq request = Axi4_rd_addr {araddr:'h1500, arlen:0, arsize:2, arburst:axburst_incr};
           for (Integer i = 0; i<`tn_num_masters; i = i + 1) begin
             request.araddr = request.araddr + 'h100;
             inst1.m_fifo[i].i_rd_addr.enq(request);

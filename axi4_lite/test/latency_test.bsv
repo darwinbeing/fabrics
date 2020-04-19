@@ -39,13 +39,13 @@ package latency_test;
 
   (*synthesize*)                            
   module mkinst_onlyfabric (Ifc_fabric_axi4);
-    Ifc_fabric_axi4 fabric <- mkaxi4l_fabric (fn_mm, replicate('1), replicate('1));
+    Ifc_fabric_axi4 fabric <- mkaxi4l_fabric (fn_mm, fn_mm, '1, '1, '1, '1);
     return fabric;
   endmodule:mkinst_onlyfabric
 
   (*synthesize*)                            
   module mkinst_onlyfabric_2 (Ifc_fabric_axi4);
-    Ifc_fabric_axi4 fabric <- mkaxi4l_fabric_2 (fn_mm, replicate('1), replicate('1));
+    Ifc_fabric_axi4 fabric <- mkaxi4l_fabric_2 (fn_mm, fn_mm, '1, '1, '1, '1);
     return fabric;
   endmodule:mkinst_onlyfabric_2
 
@@ -61,7 +61,7 @@ package latency_test;
     let fabric <- mkinst_onlyfabric; 
 
     for (Integer i = 0; i<`nmasters; i = i + 1) begin
-      mkConnection(fabric.v_from_masters[i],m_xactors[i].axil_side);
+      mkConnection(fabric.v_from_masters[i],m_xactors[i].axi4l_side);
     end
     for (Integer i = 0; i<`nslaves; i = i + 1) begin
       mkConnection(fabric.v_to_slaves[i],s_err[i]);
@@ -85,7 +85,7 @@ package latency_test;
     let fabric <- mkinst_onlyfabric_2; 
 
     for (Integer i = 0; i<`nmasters; i = i + 1) begin
-      mkConnection(fabric.v_from_masters[i],m_xactors[i].axil_side);
+      mkConnection(fabric.v_from_masters[i],m_xactors[i].axi4l_side);
     end
     for (Integer i = 0; i<`nslaves; i = i + 1) begin
       mkConnection(fabric.v_to_slaves[i],s_err[i]);

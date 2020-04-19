@@ -85,7 +85,7 @@ interface Ifc_axi2apb #(  numeric type axi_id,
                           numeric type apb_data,
                           numeric type user );
   (*prefix="AXI4"*)
-  interface Ifc_axi4_slave #(axi_id, axi_addr, axi_data, user) axi_side;
+  interface Ifc_axi4_slave #(axi_id, axi_addr, axi_data, user) axi4_side;
   (*prefix="APB"*)
   interface Ifc_apb_master #(apb_addr, apb_data, user)         apb_side;
 endinterface:Ifc_axi2apb
@@ -125,7 +125,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
   ConfigReg#(Axi2ApbBridgeState)                        rg_state       <- mkConfigReg(Idle);
 
   /*doc:reg: captures the initial read request from the axi read-channel*/
-  Reg#(AXI4_rd_addr #(axi_id, axi_addr, user))          rg_rd_request  <- mkReg(unpack(0));
+  Reg#(Axi4_rd_addr #(axi_id, axi_addr, user))          rg_rd_request  <- mkReg(unpack(0));
 
   /*doc:reg: this register holds the count of the read requests to be sent to the APB*/
   Reg#(Bit#(8))                                         rg_req_beat <- mkReg(0);
@@ -159,9 +159,9 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
   Reg#(Bit#(axi_bytes))                                 rg_accum_mask  <- mkReg(0);
 
   /*doc:reg: captures the initial read request from the axi write address-channel*/
-  Reg#(AXI4_wr_addr #(axi_id, axi_addr, user))          rg_wr_request  <- mkReg(unpack(0));
+  Reg#(Axi4_wr_addr #(axi_id, axi_addr, user))          rg_wr_request  <- mkReg(unpack(0));
   /*doc:reg: captures the initial read request from the axi write data*/
-  Reg#(AXI4_wr_data #(axi_data, user))                  rg_wd_request  <- mkReg(unpack(0));
+  Reg#(Axi4_wr_data #(axi_data, user))                  rg_wd_request  <- mkReg(unpack(0));
   /*doc:reg: */
   Reg#(Bool)                                            rg_accum_err   <- mkReg(False);
 
@@ -187,7 +187,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     apb_xactor.fifo_side.i_request.enq(apb_request);
     rg_rd_request    <= axi_req;
     rg_state         <= ReadResp;
-    `logLevel( bridge, 0, $format("Axi2Apb: AXI4-Read:",fshow_axi4_rd_addr(axi_req)))
+    `logLevel( bridge, 0, $format("Axi2Apb: Axi4-Read:",fshow_axi4_rd_addr(axi_req)))
     `logLevel( bridge, 0, $format("Axi2Apb: APB-Req  :",fshow_apb_req(apb_request)))
     if (v_bytes_ratio > 1 ) begin
       Bit#(8) request_size = ('b1) << axi_req.arsize;
@@ -253,7 +253,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
                                                                     pstrb : 0,
                                                                     puser : rg_rd_request.aruser};
     apb_xactor.fifo_side.i_request.enq(apb_request);
-    `logLevel( bridge, 0, $format("Axi2Apb: AXI4-RdBurst Addr:%h Count:%d",new_address,
+    `logLevel( bridge, 0, $format("Axi2Apb: Axi4-RdBurst Addr:%h Count:%d",new_address,
         rg_req_beat))
     `logLevel( bridge, 0, $format("Axi2Apb: New APB-Req  :",fshow_apb_req(apb_request)))
     `logLevel( bridge, 0, $format("Axi2Apb: Child:%d ChildReq:%d",rg_child_burst,
@@ -278,7 +278,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
       rg_accum_data <= _resp_data;
       rg_accum_mask <= rotateBitsBy(rg_accum_mask, fromInteger(v_apb_bytes));
     end
-    AXI4_rd_data #(axi_id, axi_data, user) axi_response = AXI4_rd_data {rid: rg_rd_request.arid,
+    Axi4_rd_data #(axi_id, axi_data, user) axi_response = Axi4_rd_data {rid: rg_rd_request.arid,
                                      rdata: _resp_data,
                                      rresp: apb_response.pslverr?axi4_resp_slverr:axi4_resp_okay,
                                      ruser: apb_response.puser,
@@ -348,7 +348,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
       rg_accum_mask <= '1;
         axi_xactor.fifo_side.o_wr_data.deq;
     end
-    `logLevel( bridge, 0, $format("Axi2Apb: AXI4-Write:",fshow_axi4_wr_addr(axi_req)))
+    `logLevel( bridge, 0, $format("Axi2Apb: Axi4-Write:",fshow_axi4_wr_addr(axi_req)))
     `logLevel( bridge, 0, $format("Axi2Apb: APB-Req  :",fshow_apb_req(apb_request)))
   endrule:rl_write_frm_axi
   
@@ -380,14 +380,14 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
       if (rg_child_req_count == (rg_child_burst - fromInteger(v_apb_bytes)) || (rg_child_burst == 0)) begin
         rg_req_beat <= rg_req_beat - 1;
         axi_xactor.fifo_side.o_wr_data.deq;
-        `logLevel( bridge, 0, $format("Axi2Apb: AXI4-Wr Poping Wd Request:",
+        `logLevel( bridge, 0, $format("Axi2Apb: Axi4-Wr Poping Wd Request:",
             fshow_axi4_wr_data(axi_wreq)))
       end
     end
     else begin
       rg_req_beat <= rg_req_beat - 1;
       axi_xactor.fifo_side.o_wr_data.deq;
-      `logLevel( bridge, 0, $format("Axi2Apb: AXI4-Wr Poping Wd Request:",fshow_axi4_wr_data(axi_wreq)))
+      `logLevel( bridge, 0, $format("Axi2Apb: Axi4-Wr Poping Wd Request:",fshow_axi4_wr_data(axi_wreq)))
     end
     APB_request #(apb_addr, apb_data, user) apb_request = APB_request {
                                                                     paddr : truncate(new_address),
@@ -397,7 +397,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
                                                                     pstrb : truncate(_wstrb),
                                                                     puser : rg_wr_request.awuser};
     apb_xactor.fifo_side.i_request.enq(apb_request);
-    `logLevel( bridge, 0, $format("Axi2Apb: New AXI4-Write Count:%d:",rg_req_beat,
+    `logLevel( bridge, 0, $format("Axi2Apb: New Axi4-Write Count:%d:",rg_req_beat,
         fshow_axi4_wr_data(axi_wreq)))
     `logLevel( bridge, 0, $format("Axi2Apb: APB-Req  :",fshow_apb_req(apb_request)))
     `logLevel( bridge, 0, $format("Axi2Apb: Child:%d ChildReq:%d",rg_child_burst,
@@ -411,7 +411,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     
     let apb_response <- pop_o(apb_xactor.fifo_side.o_response);
     rg_accum_err <= rg_accum_err || apb_response.pslverr;
-    let axi_response = AXI4_wr_resp {bid: rg_wr_request.awid,
+    let axi_response = Axi4_wr_resp {bid: rg_wr_request.awid,
                                      bresp: rg_accum_err || apb_response.pslverr ?axi4_resp_slverr:axi4_resp_okay,
                                      buser: apb_response.puser};
     if(v_bytes_ratio > 1 && rg_child_res_count != rg_child_burst && rg_child_burst != 0) begin
@@ -430,7 +430,7 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     `logLevel( bridge, 0, $format("Axi2Apb: APB-Resp: Count:%2d",rg_resp_beat, fshow_apb_resp(apb_response)))
   endrule:rl_write_response_to_axi
 
-  interface axi_side = axi_xactor.axi_side;
+  interface axi4_side = axi_xactor.axi4_side;
   interface apb_side = apb_xactor.apb_side;
 
 endmodule:mkaxi2apb
@@ -452,11 +452,11 @@ instance Connectable #(Ifc_axi4_master #(axi_id, axi_addr, axi_data, user),
             Add#(b__, 8, axi_addr),
             Mul#(apb_data, c__, axi_data) // Apb is a byte multiple of axi_data
           );
-  module mkConnection #(Ifc_axi4_master #(axi_id, axi_addr, axi_data, user) axi_side,
+  module mkConnection #(Ifc_axi4_master #(axi_id, axi_addr, axi_data, user) axi4_side,
                        Ifc_apb_slave #(apb_addr, apb_data, user)         apb_side)
                        (Empty);
     Ifc_axi2apb #(axi_id, axi_addr, axi_data, apb_addr, apb_data, user) bridge <- mkaxi2apb;
-    mkConnection(axi_side, bridge.axi_side);
+    mkConnection(axi4_side, bridge.axi4_side);
     mkConnection(apb_side, bridge.apb_side);
   endmodule:mkConnection
 endinstance:Connectable
@@ -478,9 +478,9 @@ instance Connectable #(Ifc_apb_slave #(apb_addr, apb_data, user),
             Mul#(apb_data, c__, axi_data) // Apb is a byte multiple of axi_data
           );
   module mkConnection #(Ifc_apb_slave #(apb_addr, apb_data, user)         apb_side,
-                        Ifc_axi4_master #(axi_id, axi_addr, axi_data, user) axi_side )
+                        Ifc_axi4_master #(axi_id, axi_addr, axi_data, user) axi4_side )
                        (Empty);
-    mkConnection(axi_side, apb_side);
+    mkConnection(axi4_side, apb_side);
   endmodule:mkConnection
 endinstance:Connectable
 

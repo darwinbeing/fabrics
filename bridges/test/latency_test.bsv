@@ -90,9 +90,9 @@ module mkbram_apb #(parameter Integer slave_base)
   return s_xactor.apb_side;
 endmodule:mkbram_apb
 
-typedef AXI4_rd_addr #(`axi_id, `axi_addr, `user) ARReq;
-typedef AXI4_wr_addr #(`axi_id, `axi_addr, `user) AWReq;
-typedef AXI4_wr_data #(`axi_data, `user)          AWDReq;
+typedef Axi4_rd_addr #(`axi_id, `axi_addr, `user) ARReq;
+typedef Axi4_wr_addr #(`axi_id, `axi_addr, `user) AWReq;
+typedef Axi4_wr_data #(`axi_data, `user)          AWDReq;
 
 module mkTb(Empty);
   
@@ -114,19 +114,19 @@ module mkTb(Empty);
       seq
         action
           let stime <- $stime;
-          ARReq request = AXI4_rd_addr {araddr:'h1000, arlen:7, arsize:2, arburst:axburst_incr};
+          ARReq request = Axi4_rd_addr {araddr:'h1000, arlen:7, arsize:2, arburst:axburst_incr};
           axi_xactor.fifo_side.i_rd_addr.enq(request);
           $display("[%10d]\tSending Rd Req",$time, fshow_axi4_rd_addr(request));
         endaction
         action
           let stime <- $stime;
-          AWReq request = AXI4_wr_addr {awaddr:'h1000, awlen:7, awsize:2, awburst:axburst_incr};
+          AWReq request = Axi4_wr_addr {awaddr:'h1000, awlen:7, awsize:2, awburst:axburst_incr};
           axi_xactor.fifo_side.i_wr_addr.enq(request);
           $display("[%10d]\tSending Wr Req",$time, fshow_axi4_wr_addr(request));
         endaction
         for(iter1 <= 1; iter1 <= 8; iter1 <= iter1 + 1)
           action
-            AWDReq req = AXI4_wr_data{wdata:rg_axi_data, wstrb:'1, wlast: iter1 == 8};
+            AWDReq req = Axi4_wr_data{wdata:rg_axi_data, wstrb:'1, wlast: iter1 == 8};
             axi_xactor.fifo_side.i_wr_data.enq(req);
             $display("[%10d]\tSending WrD Req",$time, fshow_axi4_wr_data(req));
             rg_axi_data <= rg_axi_data + 'h11111111;

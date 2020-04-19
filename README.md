@@ -4,7 +4,7 @@
 </div>
 
 This repository contains implementations for various bus protocols, fabrics and bridges. All of these
-are designed using Bluespec System Verilog (BSV) the compiler for which is open-source and available
+are designed using Bluespec System Verilog (BSV) for which the compiler is open-source and available
 here: [BSVLang](https://github.com/BSVLang/Main). 
 
 The generated verilog RTL is completely synthesizable (FPGA proven) and can also be simulated in 
@@ -15,8 +15,8 @@ The list of currently avaiable bus implementations:
 
 1. **[AMBA] AXI4 (Advanced eXtensible Interface)** : This is a fully-functional ``M`` master to 
    ``S`` slave AXI-4 cross-bar interconnect. The implementation supports all burst-modes. The
-   cross-bar also comes with master and slave transactors which provide a simple fifo-based inteface
-   to quick;y integrate with a custom IPs. Area optimized variants are also available.
+   cross-bar also comes with master and slave transactors which provides a simple fifo-based inteface
+   to quickly integrate with any custom IPs. Area optimized variants are also available.
 2. **[AMBA] AXI4-Lite (Advanced eXtensible Interface - Lite)** : This is a fully-functional ``M`` master to 
    ``S`` slave AXI-4 Lite cross-bar interconnect. The cross-bar also comes with master and slave 
    transactors which provide a simple fifo-based inteface to quickly integrate with a custom IPs. 

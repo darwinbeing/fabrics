@@ -610,7 +610,7 @@ interface Ifc_axi4l_master_xactor #(numeric type wd_addr,
 	method Action reset;
 
 	// AXI side
-	interface Ifc_axi4l_master #(wd_addr, wd_data, wd_user) axil_side;
+	interface Ifc_axi4l_master #(wd_addr, wd_data, wd_user) axi4l_side;
 
   // Server side
   interface Ifc_axi4l_server #(wd_addr, wd_data, wd_user)  fifo_side;
@@ -646,7 +646,7 @@ module mkaxi4l_master_xactor #(parameter QueueSize sz)
 	endmethod
 
 	// AXI side
-	interface axil_side = interface Ifc_axi4l_master;
+	interface axi4l_side = interface Ifc_axi4l_master;
 		// Wr Addr channel
 		method Bool           m_awvalid = f_wr_addr.notEmpty;
 		method Bit #(wd_addr) m_awaddr  = f_wr_addr.first.awaddr;
@@ -756,7 +756,7 @@ module mkaxi4l_master_xactor_2 (Ifc_axi4l_master_xactor #(wd_addr, wd_data, wd_u
 	endmethod
 
 	// AXI side
-	interface axil_side = interface Ifc_axi4l_master;
+	interface axi4l_side = interface Ifc_axi4l_master;
 			   // Wr Addr channel
 			   method Bool           m_awvalid = crg_wr_addr_full [port_deq];
 			   method Bit #(wd_addr) m_awaddr  = rg_wr_addr.awaddr;
@@ -837,7 +837,7 @@ interface Ifc_axi4l_slave_xactor #(numeric type wd_addr,
 	method Action reset;
 
 	// AXI side
-	interface Ifc_axi4l_slave #(wd_addr, wd_data, wd_user) axil_side;
+	interface Ifc_axi4l_slave #(wd_addr, wd_data, wd_user) axi4l_side;
 
 	// FIFOF side
   interface Ifc_axi4l_client #(wd_addr, wd_data, wd_user) fifo_side;
@@ -873,7 +873,7 @@ module mkaxi4l_slave_xactor #(parameter QueueSize sz)
 	endmethod
 
 	// AXI side
-	interface axil_side = interface Ifc_axi4l_slave;
+	interface axi4l_side = interface Ifc_axi4l_slave;
 	  // Wr Addr channel
 	  method Action m_awvalid (Bool           awvalid,
 	   	                       Bit #(wd_addr) awaddr,
@@ -990,7 +990,7 @@ module mkaxi4l_slave_xactor_2 (Ifc_axi4l_slave_xactor #(wd_addr, wd_data, wd_use
 	endmethod
 
 	// AXI side
-	interface axil_side = interface Ifc_axi4l_slave;
+	interface axi4l_side = interface Ifc_axi4l_slave;
 			   // Wr Addr channel
 			   method Action m_awvalid (Bool           awvalid,
 						    Bit #(wd_addr) awaddr,
@@ -1095,7 +1095,7 @@ module mkaxi4l_err_2(Ifc_axi4l_slave #(wd_addr, wd_data, wd_user));
     s_xactor.fifo_side.i_wr_resp.enq (b);
   endrule:rl_receive_write_request
 
-  return s_xactor.axil_side;
+  return s_xactor.axi4l_side;
 
 endmodule:mkaxi4l_err_2
 
@@ -1124,7 +1124,7 @@ module mkaxi4l_err(Ifc_axi4l_slave #(wd_addr, wd_data, wd_user));
 	  `logLevel( err_slave, 0, $format("ErrSlave: sending write response: ",fshow_axi4l_wr_resp(b)))
   endrule:rl_receive_write_request
 
-  return s_xactor.axil_side;
+  return s_xactor.axi4l_side;
 
 endmodule:mkaxi4l_err
 endpackage:axi4l_types

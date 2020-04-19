@@ -98,10 +98,10 @@ package axi4_xactors;
                                             `fixed_priority_rd, `fixed_priority_wr);
 
     for (Integer i = 0; i<`tn_num_masters; i = i + 1) begin
-      mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);
+      mkConnection(fabric.v_from_masters[i],m_xactors[i].axi4_side);
     end
     for (Integer i = 0; i<`tn_num_slaves; i = i + 1) begin
-      mkConnection(fabric.v_to_slaves[i],s_xactors[i].axi_side);
+      mkConnection(fabric.v_to_slaves[i],s_xactors[i].axi4_side);
     end
 
     function Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
@@ -126,10 +126,10 @@ package axi4_xactors;
                                             `fixed_priority_rd, `fixed_priority_wr);
 
     for (Integer i = 0; i<`tn_num_masters; i = i + 1) begin
-      mkConnection(fabric.v_from_masters[i],m_xactors[i].axi_side);
+      mkConnection(fabric.v_from_masters[i],m_xactors[i].axi4_side);
     end
     for (Integer i = 0; i<`tn_num_slaves; i = i + 1) begin
-      mkConnection(fabric.v_to_slaves[i],s_xactors[i].axi_side);
+      mkConnection(fabric.v_to_slaves[i],s_xactors[i].axi4_side);
     end
 
     function Ifc_axi4_server #(`wd_id, `wd_addr, `wd_data, `wd_user) f1 (Integer j)
