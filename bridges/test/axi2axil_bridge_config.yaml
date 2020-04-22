@@ -1,0 +1,23 @@
+# Size of the id fields on the AXI side
+# ID width can range upto 32-bits
+axi_id: 2
+
+# Size of the address fields in the read-address and write-address channels of the AXI Side
+# Address widths can go upto 64-bits
+axi_addr: 32
+
+# Size of the data fields in the read-response and write-data channels on the AXI side
+# The data widths supported are: 32, 64, 128, 256, 512 and 1024
+axi_data: 512
+
+# Size of the address fields on the AXI4-Lite side
+# Address widths can go upto 32-bits
+axil_addr: 32
+
+# Size of the data fields on the AXI4-Lite side
+axil_data: 512
+
+# Size of the user fields in all the channels on both sides
+user: 0
+
+

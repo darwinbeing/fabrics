@@ -4,3 +4,5 @@ logs
 obj_dir
 common_bsv
 sim_main.h
+axi4l_crossbar.bsv
+axi4l_xactors.bsv

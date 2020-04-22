@@ -1,10 +1,10 @@
 
 include Makefile.inc
 
-BUILD:=build
-BSVBUILDDIR:=$(BUILD)/hw/intermediate
-BSVOUTDIR:=./bin/
+BUILD:=./build/
+BSVBUILDDIR:=$(BUILD)/hw/intermediate/
 VERILOGDIR:=$(BUILD)/hw/verilog/
+BSVOUTDIR:=./bin/
 define_macros:= -D simulate -D ASSERT=True -D nmasters=$(MASTERS) -D nslaves=$(SLAVES) -D simulate
 
 # ---------- bluespec related settings -----------------------
@@ -14,18 +14,25 @@ BSC_VDIR:=$(subst bin/bsc,bin/,${BSC_DIR})../lib/Verilog
 BSCCMD:=bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) \
 	+RTS -K40000M -RTS -check-assert  -keep-fires -opt-undetermined-vals -remove-false-rules \
 	-remove-empty-rules -remove-starved-rules -remove-dollar -unspecified-to X -show-schedule \
-	-steps-warn-interval 500000 -show-module-use $(define_macros)
+	-steps-warn-interval 500000 -show-module-use -suppress-warnings G0010:G0023  $(define_macros)
 # -------------------------------------------------------------
 
 # ---------- verilator related settings -----------------------
 VERILATOR_FLAGS:= -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert \
 	sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
 	-Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
-	--output-split 20000  --output-split-ctrace 10000 --trace
+	--output-split 20000  --output-split-ctrace 10000
 VERILATOR_SPEED:=OPT_SLOW="-O3" OPT_FAST="-O3"
 # -------------------------------------------------------------
 
 default: generate_verilog link_verilator simulate
+
+.PHONY: generate_instances
+generate_instances: cog_gen generate_verilog
+
+.PHONY: cog_gen
+cog_gen:
+	cog -d $(TOP_FILE).cog > $(TOP_FILE)
 
 .PHONY: link_verilator
 link_verilator: ## Generate simulation executable using Verilator
@@ -55,4 +62,4 @@ simulate:
 
 .PHONY: clean
 clean:
-	rm -rf $(BUILD) $(BSVOUTDIR) *.jou *.log obj_dir sim_main.h
+	rm -rf $(BUILD) $(BSVOUTDIR) *.jou *.log obj_dir sim_main.h axi4_crossbar.bsv axi4_xactors.bsv

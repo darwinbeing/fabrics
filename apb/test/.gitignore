@@ -5,3 +5,4 @@ verilog
 obj_dir
 common_bsv
 sim_main.h
+apb_interconnect.bsv

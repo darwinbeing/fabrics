@@ -1,0 +1,151 @@
+// Copyright (c) 2020 InCore Semiconductors Pvt. Ltd. see LICENSE.incore for details.
+
+package axi4l_crossbar;
+
+  import Vector       :: * ;
+  import DefaultValue :: * ;
+  import Connectable  :: * ;
+  import GetPut       :: * ;
+  import axi4l         :: * ;
+  
+#[[[cog
+#  import cog
+#  import yaml
+#  import re
+#  import sys
+#  
+#  yaml_path = 'axi4l_crossbar_config.yaml'
+#  yaml_file = open(yaml_path, 'r')
+#  config = yaml.safe_load(yaml_file)
+#  
+#  if len(config['memory_map']) != config['tn_num_slaves']:
+#     raise Exception('tn_num_slaves does not match number of entries in memory map')
+#  
+#  if 2**config['tn_num_masters'] -1 < config['fixed_priority_rd'] :
+#     raise Exception('fixed read priorty has more entries than num of masters')
+#
+#  if 2**config['tn_num_masters'] -1 < config['fixed_priority_wr'] :
+#     raise Exception('fixed write priorty has more entries than num of masters')
+#
+#  for x in range(0,config['tn_num_slaves']):
+#     if x not in config['memory_map']:
+#         raise Exception ('Slot ' + str(x) + ' missing in memory-map ')
+#     if config['memory_map'][x]['access'] != 'error':
+#         if config['memory_map'][x]['base'] > 2**config['wd_addr']:
+#             raise Exception ('Slot ' + str(x) + ' has mem map out of bounds')
+#        
+#  
+#  cog.outl ('`define wd_addr            ' + str(config['wd_addr']))
+#  cog.outl ('`define wd_data            ' + str(config['wd_data']))
+#  cog.outl ('`define wd_user            ' + str(config['wd_user']))
+#  cog.outl ('`define tn_num_masters     ' + str(config['tn_num_masters']))
+#  cog.outl ('`define tn_num_slaves      ' + str(config['tn_num_slaves']))
+#  cog.outl ("`define fixed_priority_rd  'b" + str(bin(config['fixed_priority_rd']))[2:])
+#  cog.outl ("`define fixed_priority_wr  'b" + str(bin(config['fixed_priority_wr']))[2:])
+#  cog.outl ('`define tn_num_slaves_bits TLog#(`tn_num_slaves)')
+#  
+#  read_masks = 0
+#  write_masks = 0
+#  read_slaves = 0
+#  write_slaves = 0
+#  elseif_template = "  else if (wd_addr >= 'h{0} && wd_addr < 'h{1}) return {2};\n"
+#  if_template = "  if (wd_addr >= 'h{0} && wd_addr < 'h{1}) return {2};\n"
+#  else_template = "  else return {0};"
+#  return_template = " return {0};"
+#  fn_read_temp = '''
+#  function Bit#(TMax#(`tn_num_slaves_bits,1)) fn_rd_memory_map(Bit#(`wd_addr) wd_addr);
+#  {0}
+#  endfunction:fn_rd_memory_map
+#  '''
+#  fn_write_temp = '''
+#  function Bit#(TMax#(`tn_num_slaves_bits,1)) fn_wr_memory_map(Bit#(`wd_addr) wd_addr);
+#  {0}
+#  endfunction:fn_wr_memory_map
+#  '''
+#  
+#  read_func = ''
+#  write_func = ''
+#  errorslave_found = False
+#  
+#  for slaves in config['memory_map']:
+#      if config['memory_map'][slaves]['access'] == 'error':
+#         else_template = else_template.format(slaves)
+#         return_template = return_template.format(slaves)
+#         errorslave_found = True
+#      if 'read' in config['memory_map'][slaves]['access']:
+#          if (read_slaves == 0 ):
+#              read_func += if_template.format(\
+#                   str(hex(config['memory_map'][slaves]['base']))[2:], \
+#                   str(hex(config['memory_map'][slaves]['bound']))[2:], \
+#                   slaves)
+#          else:
+#              read_func += elseif_template.format(\
+#                   str(hex(config['memory_map'][slaves]['base']))[2:], \
+#                   str(hex(config['memory_map'][slaves]['bound']))[2:], \
+#                   slaves)
+#      if 'write' in config['memory_map'][slaves]['access']:
+#          if (write_slaves == 0 ):
+#              write_func += if_template.format(\
+#                   str(hex(config['memory_map'][slaves]['base']))[2:], \
+#                   str(hex(config['memory_map'][slaves]['bound']))[2:], \
+#                   slaves)
+#          else:
+#              write_func += elseif_template.format(\
+#                   str(hex(config['memory_map'][slaves]['base']))[2:], \
+#                   str(hex(config['memory_map'][slaves]['bound']))[2:], \
+#                   slaves)
+#  
+#      if config['memory_map'][slaves]['access'] == 'read-write' :
+#          read_masks = read_masks + 2**slaves
+#          write_masks = write_masks + 2**slaves
+#          read_slaves += 1
+#          write_slaves += 1
+#      if config['memory_map'][slaves]['access'] == 'read-only' :
+#          read_masks = read_masks + 2**slaves
+#          read_slaves += 1
+#      if config['memory_map'][slaves]['access'] == 'write-only' :
+#          write_masks = write_masks + 2**slaves
+#          write_slaves += 1
+#      if config['memory_map'][slaves]['access'] == 'error' :
+#          read_masks = read_masks + 2**slaves
+#          write_masks = write_masks + 2**slaves
+# 
+#  if not errorslave_found :
+#      raise Exception ('No Error Slave found')
+#  
+#  if read_slaves == 0:
+#      read_func += return_template
+#  else:
+#      read_func += else_template
+#
+#  if write_slaves == 0:
+#      write_func += return_template
+#  else:
+#      write_func += else_template
+#  cog.outl ("`define read_slave        'b" + str(bin(read_masks))[2:])
+#  cog.outl ("`define write_slave       'b" + str(bin(write_masks))[2:])
+#  
+#  cog.outl(fn_read_temp.format(read_func))
+#  cog.outl(fn_write_temp.format(write_func))
+#  yaml_file.close()
+#]]]
+#[[[end]]]
+  
+  typedef Ifc_axi4l_fabric #(`tn_num_masters, `tn_num_slaves, `wd_addr, `wd_data, `wd_user)  Fabric_AXI4_IFC;
+
+
+  (*synthesize, clock_prefix = "ACLK", reset_prefix="ARESETN"*)
+  module mkaxi4l_crossbar (Fabric_AXI4_IFC);
+    Fabric_AXI4_IFC fabric <- mkaxi4l_fabric (fn_rd_memory_map, fn_wr_memory_map, `read_slave,
+                                            `write_slave, `fixed_priority_rd, `fixed_priority_wr);
+    return fabric;
+  endmodule:mkaxi4l_crossbar
+
+  (*synthesize, clock_prefix = "ACLK", reset_prefix="ARESETN"*)
+  module mkaxi4l_crossbar_2 (Fabric_AXI4_IFC);
+    Fabric_AXI4_IFC fabric <- mkaxi4l_fabric_2 (fn_rd_memory_map, fn_wr_memory_map, `read_slave,
+                                            `write_slave, `fixed_priority_rd, `fixed_priority_wr);
+    return fabric;
+  endmodule:mkaxi4l_crossbar_2
+
+endpackage:axi4l_crossbar

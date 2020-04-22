@@ -8,22 +8,27 @@ check-mr-build:
         - schedules
     script:
         - echo -e "section_start:`date +%s`:source_tools\r\e[0KSetup Initialization"
+        - export PATH="/home/gitlab-runner/.pyenv/bin:$PATH"
+        - eval "$(pyenv init -)"
+        - eval "$(pyenv virtualenv-init -)"
+        - pyenv activate venv
+        - pip install cogapp
         - source /tools/setup.sh
         - ./manager.sh update_deps
         - echo -e "section_end:`date +%s`:source_tools\r\e[0Ksection_start:`date +%s`:axi4_crossbar\r\e[0KCompiling AXI4 Crossbar"
         - cd axi4/test
-        - make TOP_FILE=axi4_crossbar.bsv TOP_MODULE=mkaxi4_crossbar generate_verilog
+        - make TOP_FILE=axi4_crossbar.bsv TOP_MODULE=mkaxi4_crossbar generate_instances
         - echo -e "section_end:`date +%s`:axi4_crossbar\r\e[0Ksection_start:`date +%s`:axi4l_crossbar\r\e[0KCompiling AXI4-Lite Crossbar"
         - cd ../../axi4_lite/test
-        - make TOP_FILE=axi4l_crossbar.bsv TOP_MODULE=mkaxi4l_crossbar generate_verilog
+        - make TOP_FILE=axi4l_crossbar.bsv TOP_MODULE=mkaxi4l_crossbar generate_instances
         - echo -e "section_end:`date +%s`:axi4l_crossbar\r\e[0Ksection_start:`date +%s`:apb_inter\r\e[0KCompiling APB interconnect"
         - cd ../../apb/test
-        - make TOP_FILE=apb_interconnect.bsv TOP_MODULE=mkapb_interconnect generate_verilog
+        - make TOP_FILE=apb_interconnect.bsv TOP_MODULE=mkapb_interconnect generate_instances
         - echo -e "section_end:`date +%s`:apb_inter\r\e[0Ksection_start:`date +%s`:bridges\r\e[0KCompiling all Bridges"
         - cd ../../bridges/test
-        - make TOP_FILE=axi2apb_bridge.bsv TOP_MODULE=mkaxi2apb_bridge generate_verilog
-        - make TOP_FILE=axi2axil_bridge.bsv TOP_MODULE=mkaxi2axil_bridge generate_verilog
-        - make TOP_FILE=axil2apb_bridge.bsv TOP_MODULE=mkaxil2apb_bridge generate_verilog
+        - make TOP_FILE=axi2apb_bridge.bsv TOP_MODULE=mkaxi2apb_bridge generate_instances
+        - make TOP_FILE=axi2axil_bridge.bsv TOP_MODULE=mkaxi2axil_bridge generate_instances
+        - make TOP_FILE=axil2apb_bridge.bsv TOP_MODULE=mkaxil2apb_bridge generate_instances
         - echo -e "section_end:`date +%s`:bridges\r\e[0K"
     only:
       refs:

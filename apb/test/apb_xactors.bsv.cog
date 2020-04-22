@@ -1,0 +1,136 @@
+// see LICENSE.incore for more details on licensing terms
+/*
+Author: Neel Gala, neelgala@incoresemi.com
+Created on: 
+
+*/
+package apb_xactors;
+import FIFOF        :: * ;
+import Vector       :: * ;
+import SpecialFIFOs :: * ;
+import FIFOF        :: * ;
+import Connectable  :: * ;
+
+import apb          :: * ;
+
+import Semi_FIFOF   :: * ;
+
+`include "Logger.bsv"
+
+#[[[cog
+#  import cog
+#  import yaml
+#  import re
+#  import sys
+#  
+#  yaml_path = 'apb_xactors_config.yaml'
+#  yaml_file = open(yaml_path, 'r')
+#  config = yaml.safe_load(yaml_file)
+#  
+#  cog.outl ('`define wd_addr            ' + str(config['wd_addr']))
+#  cog.outl ('`define wd_data            ' + str(config['wd_data']))
+#  cog.outl ('`define wd_user            ' + str(config['wd_user']))
+#  cog.outl ('`define tn_num_slaves      ' + str(config['tn_num_slaves']))
+#  cog.outl ('`define tn_num_slaves_bits TLog#(`tn_num_slaves)')
+#  
+#  if len(config['memory_map']) != config['tn_num_slaves']:
+#     raise Exception('tn_num_slaves does not match number of entries in memory map')
+#  
+#  read_ports = 0
+#
+#  elseif_template = "  else if (wd_addr >= 'h{0} && wd_addr < 'h{1}) return {2};\n"
+#  if_template = "  if (wd_addr >= 'h{0} && wd_addr < 'h{1}) return {2};\n"
+#  else_template = "  else return {0};"
+#  return_template = " return {0};"
+#
+#  fn_read_temp = '''
+#  function Bit#(TMax#(`tn_num_slaves_bits,1)) fn_addr_map(Bit#(`wd_addr) wd_addr);
+#  {0}
+#  endfunction:fn_addr_map
+#  '''
+#  
+#  read_func = ''
+#  errorslave_found = False
+#  
+#  for slaves in config['memory_map']:
+#      if config['memory_map'][slaves]['access'] == 'error':
+#          if len(config['memory_map']) == 1:
+#            else_template = return_template.format(slaves)
+#          else:
+#            else_template = else_template.format(slaves)
+#          errorslave_found = True
+#      else:
+#          if (read_ports == 0 ):
+#              read_func += if_template.format(\
+#                   str(hex(config['memory_map'][slaves]['base']))[2:], \
+#                   str(hex(config['memory_map'][slaves]['bound']))[2:], \
+#                   slaves)
+#          else:
+#              read_func += elseif_template.format(\
+#                   str(hex(config['memory_map'][slaves]['base']))[2:], \
+#                   str(hex(config['memory_map'][slaves]['bound']))[2:], \
+#                   slaves)
+#      read_ports = read_ports + 1
+# 
+#  if not errorslave_found :
+#      raise Exception ('No Error Slave found')
+#
+#  read_func += else_template
+#  
+#  cog.outl(fn_read_temp.format(read_func))
+#  yaml_file.close()
+#]]]
+#[[[end]]]
+
+module mkapb_interconnect(Ifc_apb_fabric#(`wd_addr, `wd_data, `wd_user,  `tn_num_slaves ));
+  let ifc();
+  mkapb_fabric #(fn_addr_map) _temp(ifc);
+  return (ifc);
+endmodule:mkapb_interconnect
+
+(*synthesize*)
+module mkapb_masterxactor(Ifc_apb_master_xactor #(`wd_addr, `wd_data, `wd_user));
+  let ifc();
+  mkapb_master_xactor _temp(ifc);
+  return ifc;
+endmodule:mkapb_masterxactor
+
+(*synthesize*)
+module mkapb_slavexactor(Ifc_apb_slave_xactor #(`wd_addr, `wd_data, `wd_user));
+  let ifc();
+  mkapb_slave_xactor _temp(ifc);
+  return ifc;
+endmodule:mkapb_slavexactor
+
+
+interface Ifc_withXactors;
+  interface Ifc_apb_server #(`wd_addr, `wd_data, `wd_user) m_fifo;
+  interface Vector#(`tn_num_slaves,  Ifc_apb_client #(`wd_addr, `wd_data, `wd_user)) s_fifo;
+endinterface:Ifc_withXactors
+
+(*synthesize*)
+module mkapb_xactorinterconnect (Ifc_withXactors);
+
+  Ifc_apb_master_xactor #(`wd_addr, `wd_data, `wd_user) m_xactor <- mkapb_master_xactor;
+
+  Vector #(`tn_num_slaves, Ifc_apb_slave_xactor#(`wd_addr, `wd_data, `wd_user))
+      s_xactors <- replicateM(mkapb_slave_xactor);
+
+  let fabric <- mkapb_interconnect;
+
+  mkConnection(fabric.frm_master,m_xactor.apb_side);
+  for (Integer i = 0; i<`tn_num_slaves; i = i + 1) begin
+    mkConnection(fabric.v_to_slaves[i],s_xactors[i].apb_side);
+  end
+
+  function Ifc_apb_client#(`wd_addr, `wd_data, `wd_user) f2 (Integer j)
+    = s_xactors[j].fifo_side;
+
+  interface m_fifo = m_xactor.fifo_side;
+  interface s_fifo = genWith(f2);
+endmodule:mkapb_xactorinterconnect
+
+endpackage:apb_xactors
+
+
+

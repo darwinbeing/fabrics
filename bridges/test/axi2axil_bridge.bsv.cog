@@ -1,0 +1,46 @@
+// see LICENSE.incore for more details on licensing terms
+/*
+Author: Neel Gala, neelgala@incoresemi.com
+Created on: Wednesday 15 April 2020 05:00:01 PM IST
+
+*/
+package axi2axil_bridge;
+
+import FIFOF        :: * ;
+import Vector       :: * ;
+import SpecialFIFOs :: * ;
+import FIFOF        :: * ;
+import axi4         :: * ;
+import axi4l        :: * ;
+import axi2axil     :: * ;
+`include "Logger.bsv"
+
+#[[[cog
+#  import cog
+#  import yaml
+#  import re
+#  import sys
+#  
+#  yaml_path = 'axi2axil_bridge_config.yaml'
+#  yaml_file = open(yaml_path, 'r')
+#  config = yaml.safe_load(yaml_file)
+#  
+#  cog.outl ('`define axi_id              ' + str(config['axi_id']))
+#  cog.outl ('`define axi_addr            ' + str(config['axi_addr']))
+#  cog.outl ('`define axi_data            ' + str(config['axi_data']))
+#  cog.outl ('`define axil_addr           ' + str(config['axil_addr']))
+#  cog.outl ('`define axil_data           ' + str(config['axil_data']))
+#  cog.outl ('`define user                ' + str(config['user']))
+#  yaml_file.close()
+#]]]
+#[[[end]]]
+
+(*synthesize*)
+module mkaxi2axil_bridge(Ifc_axi2axil#(`axi_id, `axi_addr, `axi_data, `axil_addr, `axil_data, `user));
+  let ifc();
+  mkaxi2axil _temp(ifc);
+  return ifc();
+endmodule:mkaxi2axil_bridge
+
+endpackage:axi2axil_bridge
+
