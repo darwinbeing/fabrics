@@ -1,0 +1,62 @@
+# Size of the address fields in the read-address and write-address channels
+# Address widths can go upto 64-bits
+wd_addr: 32
+
+# Size of the data fields in the read-response and write-data channels
+# The data widths supported are: 32, 64, 128, 256, 512 and 1024
+wd_data: 512
+
+# Size of the user fields in all the channels
+wd_user: 0
+
+# Number of masters connected to fabric
+tn_num_masters: 6
+
+# Number of slaves connected to fabric. this should include one error slave as
+# well which will map to all the holes in the address map.
+tn_num_slaves:  7
+
+# Masters sized vector indicating if the respective master has fixed
+# priority of participants in round-robin arbitration on the read channel.
+# Setting a bit to 1 indicates the master as fixed priority, 
+# while setting it to 0 would mean it participates in round-robin arbitration
+# with other masters who has their bits set to 0
+fixed_priority_rd: 0b11
+
+# Masters sized vector indicating if the respective master has fixed
+# priority of participants in round-robin arbitration on the write channel.
+# Setting a bit to 1 indicates the master as fixed priority, 
+# while setting it to 0 would mean it participates in round-robin arbitration
+# with other masters who has their bits set to 0
+fixed_priority_wr: 0b000000
+
+# define the memory map of the slave devices. 
+# Note: the memory map entries should start from 0 in increasing order.
+# Note: the memory map should contain at least one slave which acts as the error slave. 
+memory_map:
+  0:
+    base:  0x2000
+    bound: 0x3000
+    access: read-only
+  1:
+    base:  0x3000
+    bound: 0x4000
+    access: write-only
+  2:
+    base:  0x4000
+    bound: 0x5000
+    access: read-write
+  3:
+    base:  0x5000
+    bound: 0x6000
+    access: read-write
+  4:
+    base:  0x5000
+    bound: 0x6000
+    access: read-write
+  5:
+    access: error
+  6:
+    base:  0x5000
+    bound: 0x6000
+    access: read-write

@@ -1,0 +1,19 @@
+# Size of the address fields in the read-address and write-address channels of the AXI4-Lite Side
+# Address widths can go upto 64-bits
+axil_addr: 32
+
+# Size of the data fields in the read-response and write-data channels on the AXI4-Lite side
+# The data widths supported are: 32, 64, 128, 256, 512 and 1024
+axil_data: 512
+
+# Size of the address fields on the APB side
+# Address widths can go upto 32-bits
+apb_addr: 32
+
+# Size of the data fields on the APB side
+apb_data: 512
+
+# Size of the user fields in all the channels on both sides
+user: 0
+
+

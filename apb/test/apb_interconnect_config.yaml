@@ -1,0 +1,43 @@
+# Size of the address fields in the read-address and write-address channels
+# Address widths can go upto 64-bits
+wd_addr: 32
+
+# Size of the data fields in the read-response and write-data channels
+# The data widths supported are: 32, 64, 128, 256, 512 and 1024
+wd_data: 512
+
+# Size of the user fields in all the channels
+wd_user: 0
+# Number of slaves connected to fabric. this should include one error slave as
+# well which will map to all the holes in the address map.
+tn_num_slaves:  7
+# define the memory map of the slave devices. 
+# Note: the memory map entries should start from 0 in increasing order.
+# Note: the memory map should contain at least one slave which acts as the error slave. 
+memory_map:
+  0:
+    base:  0x2000
+    bound: 0x3000
+    access: read-only
+  1:
+    base:  0x3000
+    bound: 0x4000
+    access: write-only
+  2:
+    base:  0x4000
+    bound: 0x5000
+    access: read-write
+  3:
+    base:  0x5000
+    bound: 0x6000
+    access: read-write
+  4:
+    base:  0x5000
+    bound: 0x6000
+    access: read-write
+  5:
+    access: error
+  6:
+    base:  0x5000
+    bound: 0x6000
+    access: read-write

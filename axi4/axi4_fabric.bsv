@@ -117,7 +117,8 @@ module mkaxi4_fabric #(
   Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    v_f_rd_mis <- replicateM (mkSizedFIFOF (8));
 
   /*doc:reg: round robin counter for read requests*/
-  Reg#(Bit#(TLog#(tn_num_masters))) rg_rd_master_select[num_masters] <- mkCReg(num_masters, 0);
+  Vector #(tn_num_slaves, Reg#(Bit#(TLog#(tn_num_masters)))) rg_rd_master_select
+                                                              <- replicateM(mkReg(0));
 
   /*doc:vec: vector of wires indicating which slave is a read-master trying to lock*/
   Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_rd_reqs <- replicateM(mkDWire(0));
@@ -125,8 +126,9 @@ module mkaxi4_fabric #(
    * slave */
   Vector#(tn_num_slaves , Vector#(tn_num_masters, Wire#(Bool))) wr_rd_grant 
                                                         <- replicateM(replicateM(mkDWire(True)));
-  /*doc:reg: round robin counter for write-requests*/
-  Reg#(Bit#(TLog#(tn_num_masters))) rg_wr_master_select[num_masters] <- mkCReg(num_masters, 0);
+  /*doc:reg: round robin counter for read requests*/
+  Vector #(tn_num_slaves, Reg#(Bit#(TLog#(tn_num_masters)))) rg_wr_master_select
+                                                              <- replicateM(mkReg(0));
 
   /*doc:vec: vector of wires indicating which slave is a write-master trying to lock*/
   Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_wr_reqs <- replicateM(mkDWire(0));
@@ -179,7 +181,7 @@ module mkaxi4_fabric #(
     end
     let trans = transpose(_t);
     for (Integer i = 0; i< num_slaves; i = i + 1) begin
-      let _n = fn_rr_arbiter(trans[i], rg_rd_master_select[0]);
+      let _n = fn_rr_arbiter(trans[i], rg_rd_master_select[i]);
       for (Integer j = 0; j< num_masters; j = j + 1) begin
         wr_rd_grant[i][j] <= _n[j] || unpack(fixed_priority_rd[j]);
       end
@@ -194,7 +196,7 @@ module mkaxi4_fabric #(
     end
     let trans = transpose(_t);
     for (Integer i = 0; i< num_slaves; i = i + 1) begin
-      let _n = fn_rr_arbiter(trans[i], rg_wr_master_select[0]);
+      let _n = fn_rr_arbiter(trans[i], rg_wr_master_select[i]);
       for (Integer j = 0; j< num_masters; j = j + 1) begin
         wr_wr_grant[i][j] <= _n[j] || unpack(fixed_priority_wr[j]);
       end
@@ -222,9 +224,9 @@ module mkaxi4_fabric #(
     	  v_f_wr_sjs        [mi].enq (fromInteger (sj));
 	      if (&fixed_priority_wr == 0) begin
   	      if (mi == num_masters - 1)
-	          rg_wr_master_select[mi] <= 0;
+	          rg_wr_master_select[sj] <= 0;
 	        else
-	          rg_wr_master_select[mi] <= fromInteger(mi+1);
+	          rg_wr_master_select[sj] <= fromInteger(mi+1);
 	      end
    
         `logLevel( fabric, 0, $format("FABRIC: WRA: master[%2d] -> slave[%2d]", mi, sj))
@@ -283,9 +285,9 @@ module mkaxi4_fabric #(
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))
 	      if (&fixed_priority_rd == 0) begin
   	      if (mi == num_masters - 1)
-	          rg_rd_master_select[mi] <= 0;
+	          rg_rd_master_select[sj] <= 0;
 	        else
-	          rg_rd_master_select[mi] <= fromInteger(mi+1);
+	          rg_rd_master_select[sj] <= fromInteger(mi+1);
 	      end
 	    endrule: rl_rd_xaction_master_to_slave
 
@@ -373,7 +375,8 @@ module mkaxi4_fabric_2 #(
   Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    v_f_rd_mis <- replicateM (mkSizedFIFOF (8));
 
   /*doc:reg: round robin counter for read requests*/
-  Reg#(Bit#(TLog#(tn_num_masters))) rg_rd_master_select[num_masters] <- mkCReg(num_masters, 0);
+  Vector #(tn_num_slaves, Reg#(Bit#(TLog#(tn_num_masters)))) rg_rd_master_select
+                                                              <- replicateM(mkReg(0));
 
   /*doc:vec: vector of wires indicating which slave is a read-master trying to lock*/
   Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_rd_reqs <- replicateM(mkDWire(0));
@@ -381,8 +384,9 @@ module mkaxi4_fabric_2 #(
    * slave */
   Vector#(tn_num_slaves , Vector#(tn_num_masters, Wire#(Bool))) wr_rd_grant 
                                                         <- replicateM(replicateM(mkDWire(True)));
-  /*doc:reg: round robin counter for write-requests*/
-  Reg#(Bit#(TLog#(tn_num_masters))) rg_wr_master_select[num_masters] <- mkCReg(num_masters, 0);
+  /*doc:reg: round robin counter for read requests*/
+  Vector #(tn_num_slaves, Reg#(Bit#(TLog#(tn_num_masters)))) rg_wr_master_select
+                                                              <- replicateM(mkReg(0));
 
   /*doc:vec: vector of wires indicating which slave is a write-master trying to lock*/
   Vector#(tn_num_masters, Wire#(Bit#(tn_num_slaves))) wr_master_wr_reqs <- replicateM(mkDWire(0));
@@ -435,7 +439,7 @@ module mkaxi4_fabric_2 #(
     end
     let trans = transpose(_t);
     for (Integer i = 0; i< num_slaves; i = i + 1) begin
-      let _n = fn_rr_arbiter(trans[i], rg_rd_master_select[0]);
+      let _n = fn_rr_arbiter(trans[i], rg_rd_master_select[i]);
       for (Integer j = 0; j< num_masters; j = j + 1) begin
         wr_rd_grant[i][j] <= _n[j] || unpack(fixed_priority_rd[j]);
       end
@@ -450,7 +454,7 @@ module mkaxi4_fabric_2 #(
     end
     let trans = transpose(_t);
     for (Integer i = 0; i< num_slaves; i = i + 1) begin
-      let _n = fn_rr_arbiter(trans[i], rg_wr_master_select[0]);
+      let _n = fn_rr_arbiter(trans[i], rg_wr_master_select[i]);
       for (Integer j = 0; j< num_masters; j = j + 1) begin
         wr_wr_grant[i][j] <= _n[j] || unpack(fixed_priority_wr[j]);
       end
@@ -479,9 +483,9 @@ module mkaxi4_fabric_2 #(
 	      
 	      if (&fixed_priority_wr == 0) begin
   	      if (mi == num_masters - 1)
-	          rg_wr_master_select[mi] <= 0;
+	          rg_wr_master_select[sj] <= 0;
 	        else
-	          rg_wr_master_select[mi] <= fromInteger(mi+1);
+	          rg_wr_master_select[sj] <= fromInteger(mi+1);
 	      end
    
         `logLevel( fabric, 0, $format("FABRIC: WRA: master[%2d] -> slave[%2d]", mi, sj))
@@ -540,9 +544,9 @@ module mkaxi4_fabric_2 #(
 	      v_f_rd_sjs [mi].enq (fromInteger (sj));
 	      if (&fixed_priority_rd == 0) begin
   	      if (mi == num_masters - 1)
-	          rg_rd_master_select[mi] <= 0;
+	          rg_rd_master_select[sj] <= 0;
 	        else
-	          rg_rd_master_select[mi] <= fromInteger(mi+1);
+	          rg_rd_master_select[sj] <= fromInteger(mi+1);
 	      end
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))

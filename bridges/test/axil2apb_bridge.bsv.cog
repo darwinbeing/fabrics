@@ -15,13 +15,24 @@ import apb          :: * ;
 import axil2apb      :: * ;
 `include "Logger.bsv"
 
-// --------- change the following parameters ----------//
-`define axil_addr  32
-`define axil_data  32
-`define apb_addr  24
-`define apb_data  16
-`define user      0
-// ---------------------------------------------------//
+#[[[cog
+#  import cog
+#  import yaml
+#  import re
+#  import sys
+#  
+#  yaml_path = 'axil2apb_bridge_config.yaml'
+#  yaml_file = open(yaml_path, 'r')
+#  config = yaml.safe_load(yaml_file)
+#  
+#  cog.outl ('`define axil_addr            ' + str(config['axil_addr']))
+#  cog.outl ('`define axil_data            ' + str(config['axil_data']))
+#  cog.outl ('`define apb_addr            ' + str(config['apb_addr']))
+#  cog.outl ('`define apb_data            ' + str(config['apb_data']))
+#  cog.outl ('`define user                ' + str(config['user']))
+#  yaml_file.close()
+#]]]
+#[[[end]]]
 
 (*synthesize*)
 module mkaxil2apb_bridge(Ifc_axil2apb#(`axil_addr, `axil_data, `apb_addr, `apb_data, `user));
@@ -31,3 +42,4 @@ module mkaxil2apb_bridge(Ifc_axil2apb#(`axil_addr, `axil_data, `apb_addr, `apb_d
 endmodule:mkaxil2apb_bridge
 
 endpackage:axil2apb_bridge
+

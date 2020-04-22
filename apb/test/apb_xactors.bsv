@@ -4,7 +4,7 @@ Author: Neel Gala, neelgala@incoresemi.com
 Created on: 
 
 */
-package apb_interconnect;
+package apb_xactors;
 import FIFOF        :: * ;
 import Vector       :: * ;
 import SpecialFIFOs :: * ;
@@ -17,34 +17,42 @@ import Semi_FIFOF   :: * ;
 
 `include "Logger.bsv"
 
-// --------- change the following parameters ----------//
-`define wd_addr       32
-`define wd_data       32
-`define wd_user       0
-`define tn_num_slaves 1
-// --------- change the following parameters ----------//
+`define wd_addr            32
+`define wd_data            512
+`define wd_user            0
+`define tn_num_slaves      7
+`define tn_num_slaves_bits TLog#(`tn_num_slaves)
 
-(*synthesize, clock_prefix="PCLK", reset_prefix="PRESETN"*)
+function Bit#(TMax#(`tn_num_slaves_bits,1)) fn_addr_map(Bit#(`wd_addr) wd_addr);
+  if (wd_addr >= 'h2000 && wd_addr < 'h3000) return 0;
+  else if (wd_addr >= 'h4000 && wd_addr < 'h5000) return 2;
+  else if (wd_addr >= 'h5000 && wd_addr < 'h6000) return 3;
+  else if (wd_addr >= 'h5000 && wd_addr < 'h6000) return 4;
+  else if (wd_addr >= 'h5000 && wd_addr < 'h6000) return 6;
+  else return 5;
+endfunction:fn_addr_map
+
+
 module mkapb_interconnect(Ifc_apb_fabric#(`wd_addr, `wd_data, `wd_user,  `tn_num_slaves ));
   let ifc();
   mkapb_fabric #(fn_addr_map) _temp(ifc);
   return (ifc);
 endmodule:mkapb_interconnect
 
+(*synthesize*)
+module mkapb_masterxactor(Ifc_apb_master_xactor #(`wd_addr, `wd_data, `wd_user));
+  let ifc();
+  mkapb_master_xactor _temp(ifc);
+  return ifc;
+endmodule:mkapb_masterxactor
 
-function Bit#(`tn_num_slaves) fn_addr_map (Bit#(32) addr);
-  return 1;
-  /*if (addr < 'h1000 )
-    return truncate(5'b00001);
-  else if (addr >= 'h1000 && addr < 'h2000)
-    return truncate(5'b00010);
-  else if (addr >= 'h2000 && addr < 'h3000)
-    return truncate(5'b00100);
-  else if (addr >= 'h3000 && addr < 'h4000)
-    return truncate(5'b01000);
-  else
-    return truncate(5'b10000);*/
-endfunction: fn_addr_map
+(*synthesize*)
+module mkapb_slavexactor(Ifc_apb_slave_xactor #(`wd_addr, `wd_data, `wd_user));
+  let ifc();
+  mkapb_slave_xactor _temp(ifc);
+  return ifc;
+endmodule:mkapb_slavexactor
+
 
 interface Ifc_withXactors;
   interface Ifc_apb_server #(`wd_addr, `wd_data, `wd_user) m_fifo;
@@ -52,7 +60,7 @@ interface Ifc_withXactors;
 endinterface:Ifc_withXactors
 
 (*synthesize*)
-module mkapb_interconnectxactors (Ifc_withXactors);
+module mkapb_xactorinterconnect (Ifc_withXactors);
 
   Ifc_apb_master_xactor #(`wd_addr, `wd_data, `wd_user) m_xactor <- mkapb_master_xactor;
 
@@ -71,7 +79,9 @@ module mkapb_interconnectxactors (Ifc_withXactors);
 
   interface m_fifo = m_xactor.fifo_side;
   interface s_fifo = genWith(f2);
-endmodule:mkapb_interconnectxactors
+endmodule:mkapb_xactorinterconnect
 
-endpackage:apb_interconnect
+endpackage:apb_xactors
+
+
 

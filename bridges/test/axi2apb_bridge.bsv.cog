@@ -1,0 +1,46 @@
+// see LICENSE.incore for more details on licensing terms
+/*
+Author: Neel Gala, neelgala@incoresemi.com
+Created on: Wednesday 15 April 2020 05:00:01 PM IST
+
+*/
+package axi2apb_bridge;
+
+import FIFOF        :: * ;
+import Vector       :: * ;
+import SpecialFIFOs :: * ;
+import FIFOF        :: * ;
+import axi4         :: * ;
+import apb          :: * ;
+import axi2apb      :: * ;
+`include "Logger.bsv"
+
+#[[[cog
+#  import cog
+#  import yaml
+#  import re
+#  import sys
+#  
+#  yaml_path = 'axi2apb_bridge_config.yaml'
+#  yaml_file = open(yaml_path, 'r')
+#  config = yaml.safe_load(yaml_file)
+#  
+#  cog.outl ('`define axi_id              ' + str(config['axi_id']))
+#  cog.outl ('`define axi_addr            ' + str(config['axi_addr']))
+#  cog.outl ('`define axi_data            ' + str(config['axi_data']))
+#  cog.outl ('`define apb_addr            ' + str(config['apb_addr']))
+#  cog.outl ('`define apb_data            ' + str(config['apb_data']))
+#  cog.outl ('`define user                ' + str(config['user']))
+#  yaml_file.close()
+#]]]
+#[[[end]]]
+
+(*synthesize*)
+module mkaxi2apb_bridge(Ifc_axi2apb#(`axi_id, `axi_addr, `axi_data, `apb_addr, `apb_data, `user));
+  let ifc();
+  mkaxi2apb _temp(ifc);
+  return ifc();
+endmodule:mkaxi2apb_bridge
+
+endpackage:axi2apb_bridge
+

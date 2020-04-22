@@ -18,8 +18,8 @@ import StmtFSM      :: * ;
 `define wd_user 32
 `define tn_num_masters 4
 `define tn_num_slaves  3
-`define fixed_priority_rd  'b111
-`define fixed_priority_wr  'b011
+`define fixed_priority_rd  'b0000
+`define fixed_priority_wr  'b0000
 `define tn_num_slaves_bits TLog #(`tn_num_slaves)
 
 typedef Ifc_axi4_fabric #(`tn_num_masters,

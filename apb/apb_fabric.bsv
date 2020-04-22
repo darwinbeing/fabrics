@@ -25,8 +25,9 @@ interface Ifc_apb_fabric #( numeric type wd_addr,
 
 endinterface:Ifc_apb_fabric
 
-module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) addr))
-                     (Ifc_apb_fabric #(wd_addr, wd_data, wd_user, tn_num_slaves));
+module mkapb_fabric #(
+    function Bit #(TMax#(TLog #(tn_num_slaves), 1)) fn_addr_map (Bit #(wd_addr) addr))
+    (Ifc_apb_fabric #(wd_addr, wd_data, wd_user, tn_num_slaves));
  
   let v_num_slaves = valueOf(tn_num_slaves);
  
@@ -40,6 +41,8 @@ module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
   Wire#(APB_response #(wd_data, wd_user))           wr_m_response   <- mkBypassWire;
   Wire#(Bool)                                       wr_m_pready     <- mkBypassWire;
 
+  Bit#(tn_num_slaves) _slave_select = 0;
+
   // defining wires carrying information to the slaves
   Vector#(tn_num_slaves, Wire#(APB_request #(wd_addr, wd_data, wd_user))) 
                                 wr_s_request <- replicateM(mkBypassWire);
@@ -49,18 +52,18 @@ module mkapb_fabric #( function Bit#(tn_num_slaves) fn_addr_map (Bit#(wd_addr) a
   Vector#(tn_num_slaves, Wire#(Bool))  wr_s_psel     <- replicateM(mkBypassWire);
   Vector#(tn_num_slaves, Wire#(Bool))  wr_s_pready   <- replicateM(mkBypassWire);
 
-  let slave_select = fn_addr_map(wr_m_request.paddr);
+  _slave_select[fn_addr_map(wr_m_request.paddr)] = 1;
 
   for (Integer i = 0; i<v_num_slaves; i = i + 1) begin
     rule rl_select_slave;
       wr_s_request [i] <= wr_m_request;
       wr_s_penable [i] <= wr_m_penable;
-      wr_s_psel[i]     <= (slave_select[i] == 1) && wr_m_psel;
-      if(slave_select[i] == 1 && wr_m_psel)
+      wr_s_psel[i]     <= (_slave_select[i] == 1) && wr_m_psel;
+      if(_slave_select[i] == 1 && wr_m_psel)
         `logLevel( fabric, 0, $format("APB_F: Selecting slave: %2d",i))
     endrule:rl_select_slave
 
-    rule rl_select_response (slave_select[i] == 1);
+    rule rl_select_response (_slave_select[i] == 1);
       wr_m_response <= APB_response {prdata : wr_s_response[i].prdata,
                                     pslverr : wr_s_response[i].pslverr,
                                     puser   : wr_s_response[i].puser };

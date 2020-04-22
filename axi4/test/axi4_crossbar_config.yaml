@@ -1,0 +1,55 @@
+fixed_priority_rd: 0b101000100011010001010111000
+fixed_priority_wr: 0b000010011101100010110111111
+memory_map:
+  0:
+    access: read-write
+    base: 0x1000
+    bound: 0x2000
+  1:
+    access: read-only
+    base: 0x3000
+    bound: 0x4000
+  2:
+    access: read-only
+    base: 0x5000
+    bound: 0x6000
+  3:
+    access: write-only
+    base: 0x7000
+    bound: 0x8000
+  4:
+    access: write-only
+    base: 0x9000
+    bound: 0xa000
+  5:
+    access: read-write
+    base: 0xb000
+    bound: 0xc000
+  6:
+    access: write-only
+    base: 0xd000
+    bound: 0xe000
+  7:
+    access: read-only
+    base: 0xf000
+    bound: 0x10000
+  8:
+    access: read-write
+    base: 0x11000
+    bound: 0x12000
+  9:
+    access: read-only
+    base: 0x13000
+    bound: 0x14000
+  10:
+    access: read-only
+    base: 0x15000
+    bound: 0x16000
+  11:
+    access: error
+tn_num_masters: 27
+tn_num_slaves: 12
+wd_addr: 24
+wd_data: 256
+wd_id: 9
+wd_user: 28
