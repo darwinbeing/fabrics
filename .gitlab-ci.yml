@@ -83,6 +83,7 @@ release:
         - mv build/latex/interconnect_ip.pdf ../
         - echo -e "section_end:`date +%s`:interconnect_ip\r\e[0Ksection_start:`date +%s`:tag\r\e[0KCreating Tag on Repo"
         - pyenv deactivate
+        - cd ../
         - python3 /scratch/version-extract-rst.py
         - echo -e "section_end:`date +%s`:tag\r\e[0K"
     artifacts:
