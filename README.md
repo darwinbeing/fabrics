@@ -39,4 +39,4 @@ protocols are:
    burst requests from the AXI4 side and supports all burst-modes. The bridge can also be used to
    connect interfaces with varying sizes (under certain restrictions)
 
-# [Detailed Documentation PDF](https://gitlab.com/incoresemi/ip-datasheets/-/jobs/artifacts/master/raw/incore-datasheets/interconnect_ip.pdf?job=pdf_gen) 
+# [Detailed Documentation PDF](https://gitlab.com/incoresemi/blocks/fabrics/-/jobs/artifacts/master/raw/interconnect_ip.pdf?job=release) 
