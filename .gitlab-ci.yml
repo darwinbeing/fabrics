@@ -79,6 +79,7 @@ release:
         - echo -e "section_end:`date +%s`:source_tools\r\e[0Ksection_start:`date +%s`:interconnect_ip\r\e[0KBuilding Interconnect IP Docs"
         - cd docs/
         - pip install -r requirements.txt
+        - pip install semver
         - make latexpdf
         - mv build/latex/interconnect_ip.pdf ../
         - echo -e "section_end:`date +%s`:interconnect_ip\r\e[0Ksection_start:`date +%s`:tag\r\e[0KCreating Tag on Repo"
