@@ -71,7 +71,23 @@ check-mr-compliance:
 release:
     stage: release
     script:
+        - echo -e "section_start:`date +%s`:source_tools\r\e[0KSetup Initialization"
+        - export PATH="/home/gitlab-runner/.pyenv/bin:$PATH"
+        - eval "$(pyenv init -)"
+        - eval "$(pyenv virtualenv-init -)"
+        - pyenv activate py36
+        - echo -e "section_end:`date +%s`:source_tools\r\e[0Ksection_start:`date +%s`:interconnect_ip\r\e[0KBuilding Interconnect IP Docs"
+        - cd docs/
+        - pip install -r requirements.txt
+        - make latexpdf
+        - mv build/latex/interconnect_ip.pdf ../
+        - echo -e "section_end:`date +%s`:interconnect_ip\r\e[0Ksection_start:`date +%s`:tag\r\e[0KCreating Tag on Repo"
         - python3 /scratch/version-extract-rst.py
+        - echo -e "section_end:`date +%s`:tag\r\e[0K"
+    artifacts:
+        name: interconnect_ip
+        paths:
+            - interconnect_ip.pdf
     only:
         refs:
             - master

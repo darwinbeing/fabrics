@@ -3,7 +3,7 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
-[1.1.0] - 2020-04-20
+[1.1.0] - 2020-04-23
 --------------------
 
 - using yaml files to configure instances.
@@ -15,6 +15,7 @@ its priority. This removes the restriction of having only max 5 masters on the c
 - new targets in Makefile for generating bsv instance files through cogapp
 - suppressed warnings during Bluespec compilation
 - adding test-config.py to automate generation of legal parameters of various ips.
+- moving docs from ip-datasheets to fabrics
  
 
 [1.0.1] - 2020-04-19
