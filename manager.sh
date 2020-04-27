@@ -95,7 +95,6 @@ case $1 in
     update_deps)
         printf "\nshakti-soc manager ${VERSION} - update_deps\n"
         printf "======================================\n"
-        check_version dtc 1.4.7
         update_deps
         ;;
     nuke)
