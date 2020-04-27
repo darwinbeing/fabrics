@@ -3,6 +3,11 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.1.1] - 2020-04-27
+--------------------
+
+- removing dtc dependency check from manager.sh
+
 [1.1.0] - 2020-04-23
 --------------------
 
