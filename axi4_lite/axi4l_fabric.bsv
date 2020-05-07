@@ -156,7 +156,9 @@ module mkaxi4l_fabric #(
       Bit#(tn_num_slaves) _t = 0;
       let addr                   = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
       _t[fn_rd_memory_map(addr)] = 1;
-      wr_master_rd_reqs[mi]    <= _t;
+      if( xactors_from_masters [mi].fifo_side.o_rd_addr.notEmpty) begin
+        wr_master_rd_reqs[mi]    <= _t;
+      end
     endrule:rl_capture_rd_slave_contention
     /*doc:rule: this rule will update a vector for each master making a write-request to indicate
      * which slave is being targetted*/
@@ -164,7 +166,9 @@ module mkaxi4l_fabric #(
       Bit#(tn_num_slaves) _t = 0;
       let addr                   = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
       _t[fn_wr_memory_map(addr)] = 1;
-      wr_master_wr_reqs[mi]    <= _t;
+      if(xactors_from_masters [mi].fifo_side.o_wr_addr.notEmpty) begin
+        wr_master_wr_reqs[mi]    <= _t;
+      end
     endrule:rl_capture_wr_slave_contention
   end
 
@@ -390,7 +394,9 @@ module mkaxi4l_fabric_2 #(
       Bit#(tn_num_slaves) _t = 0;
       let addr                   = xactors_from_masters [mi].fifo_side.o_rd_addr.first.araddr;
       _t[fn_rd_memory_map(addr)] = 1;
-      wr_master_rd_reqs[mi]    <= _t;
+      if( xactors_from_masters [mi].fifo_side.o_rd_addr.notEmpty) begin
+        wr_master_rd_reqs[mi]    <= _t;
+      end
     endrule:rl_capture_rd_slave_contention
     /*doc:rule: this rule will update a vector for each master making a write-request to indicate
      * which slave is being targetted*/
@@ -398,7 +404,9 @@ module mkaxi4l_fabric_2 #(
       Bit#(tn_num_slaves) _t = 0;
       let addr                   = xactors_from_masters [mi].fifo_side.o_wr_addr.first.awaddr;
       _t[fn_wr_memory_map(addr)] = 1;
-      wr_master_wr_reqs[mi]    <= _t;
+      if(xactors_from_masters [mi].fifo_side.o_wr_addr.notEmpty) begin
+        wr_master_wr_reqs[mi]    <= _t;
+      end
     endrule:rl_capture_wr_slave_contention
   end
 
