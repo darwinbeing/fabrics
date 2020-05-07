@@ -3,6 +3,12 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.1.2] - 2020-05-07
+--------------------
+
+- explicitly check if the master xactors have pending transactions, for participation in round robin 
+  arbitration. This has been applied to axi4 and axi4l fabrics
+
 [1.1.1] - 2020-04-27
 --------------------
 

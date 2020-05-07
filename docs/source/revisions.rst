@@ -1,9 +1,26 @@
 Revisions
 =========
 
+**Version [1.1.2]**
+^^^^^^^^^^^^^^^^^^^
+  - Doc updates (May 7 2020)
+
+    * remove version from the front page.
+
+  - IP updates (1.1.2)
+    
+    * explicitly check if the master xactors have pending transactions, for participation in round robin 
+      arbitration. This has been applied to axi4 and axi4l fabrics
+
+**Version [1.1.1]**
+^^^^^^^^^^^^^^^^^^^
+  - IP updates (1.1.1)
+    
+    * removing dtc dependency check from manager.sh
+
 **Version [1.1.0]**
 ^^^^^^^^^^^^^^^^^^^
-  - Doc updates (23 April 2020)
+  - Doc updates (April 23 2020)
 
     * updated steps in all IPs to use a config yaml
 

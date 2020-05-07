@@ -21,7 +21,7 @@ BSCCMD:=bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir
 VERILATOR_FLAGS:= -O3 -LDFLAGS "-static" --x-assign fast  --x-initial fast --noassert \
 	sim_main.cpp --bbox-sys -Wno-STMTDLY  -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY \
 	-Wno-INITIALDLY  --autoflush   --threads 1 -DBSV_RESET_FIFO_HEAD  -DBSV_RESET_FIFO_ARRAY \
-	--output-split 20000  --output-split-ctrace 10000
+	--output-split 20000  --output-split-ctrace 10000 --trace
 VERILATOR_SPEED:=OPT_SLOW="-O3" OPT_FAST="-O3"
 # -------------------------------------------------------------
 
@@ -57,7 +57,7 @@ generate_verilog:
 .PHONY: simulate
 simulate:
 	@echo Simulating $(TOP_MODULE)
-	@./bin/out +fullverbose 
+	@./bin/out +fullverbose +trace
 	@echo Simulation Done
 
 .PHONY: clean

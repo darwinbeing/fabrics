@@ -17,6 +17,11 @@ import sys
 import re
 #from mermaid import *
 
+def get_version():
+    changelog = open('../../CHANGELOG.rst','r').read()
+    x = re.findall(r'\[(.*?)\]',changelog)[0]
+    return str(x)
+
 sys.path.insert(0, os.path.abspath('../..'))
 sys.setrecursionlimit(1500)
 
@@ -28,7 +33,7 @@ project = u'Interconnect IP'
 copyright = 'InCore Semiconductors'
 author = ''
 
-version = "1.1.0" 
+version = str(get_version())
 # The full version, including alpha/beta/rc tags
 release =  version
 
@@ -167,7 +172,7 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     'papersize': 'article',
-    'releasename':"",
+    'releasename': version,
     'extraclassoptions': 'openany, twoside',
 
     # Sonny, Lenny, Glenn, Conny, Rejne, Bjarne and Bjornstrup
@@ -251,7 +256,7 @@ latex_elements = {
             %\fancyfoot[R]{\ifthenelse{\isodd{\value{page}}}{{\tiny Meher Krishna Patel} }{\href{http://pythondsp.readthedocs.io/en/latest/pythondsp/toc.html}{\tiny PythonDSP}}}
 
             %%% Alternating Footer for two side
-            \fancyfoot[LO, LE]{\small \bf{Copyright \textcopyright InCore Semiconductors Pvt. Ltd.}}
+            \fancyfoot[LO, LE]{\small \bf{Copyright \textcopyright \the\year \textbf{ } InCore Semiconductors Pvt. Ltd.}}
             %\fancyfoot[LO, LE]{\scriptsize \bf{Interconnect IP Datasheet}}
 
             %%% page number
@@ -297,7 +302,7 @@ latex_elements = {
 
 
             \vspace{10mm}
-            \Large \textbf{{Release: 1.1.0}}
+            \Large \textbf{{Release: \releasename}}
             \vspace{10mm}
 
             Last update on : \today
@@ -308,7 +313,7 @@ latex_elements = {
 
             %% \vfill adds at the bottom
             \vfill
-            Copyright \textcopyright InCore Semiconductors Pvt. Ltd.
+            Copyright \textcopyright \the\year \textbf{ } InCore Semiconductors Pvt. Ltd.
         \end{titlepage}
         \sloppy
 
