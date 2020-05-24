@@ -29,7 +29,7 @@ sys.setrecursionlimit(1500)
 mermaid_pdfcrop = 'pdfcrop'
 # -- Project information -----------------------------------------------------
 
-project = u'Interconnect IP'
+project = u'Interconnect IPs'
 copyright = 'InCore Semiconductors'
 author = ''
 
@@ -37,6 +37,8 @@ version = str(get_version())
 # The full version, including alpha/beta/rc tags
 release =  version
 
+def setup(app):
+    app.add_css_file("custom.css")
 
 # -- General configuration ---------------------------------------------------
 
@@ -47,6 +49,8 @@ release =  version
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+numfig = True
+wavedrom_html_jsinline = False
 needs_sphinx = '1.7.5'
 extensions = [
     'sphinx.ext.autodoc',
@@ -55,7 +59,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinxcontrib.mermaid',
-    'sphinxcontrib.bibtex'
+    'sphinxcontrib.bibtex', 
+    'sphinxcontrib.wavedrom'
 ]
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -79,7 +84,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path .
-exclude_patterns = []
+exclude_patterns = ['_build']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -87,13 +92,15 @@ pygments_style = 'sphinx'
 
 # -- Options for HTML output -------------------------------------------------
 
-github_url = 'https://gitlab.com/incoresemi/datasheets/chromite-cores'
+github_url = 'https://gitlab.com/blocks/fabrics'
 html_show_sourcelink = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
 #html_theme = 'bootstrap'
 #html_theme = 'alabaster'
+import sphinx_rtd_theme
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
         'prev_next_buttons_location': 'both',
@@ -105,48 +112,50 @@ html_theme_options = {
         'includehidden': True,
         'titles_only': False
         }
-#html_theme_options = {
-#    "description": "",
-#    "fixed_sidebar": True,
-#    "sidebar_includehidden": True,
-#    "sidebar_collapse": True,
-#    "show_relbars": True,
-#    "show_related": True,
-#    'show_powered_by': False,
-#}
 #html_sidebars = {
 #    "**": ["about.html", "navigation.html", "searchbox.html", "donate.html"]
 #}
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-#html_theme_options = {
-#'canonical_url': '',
-#'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard
-#'logo_only': False,
-#'display_version': True,
-#'prev_next_buttons_location': 'bottom',
-#'style_external_links': False,
-#'vcs_pageview_mode': '',
-#'style_nav_header_background': 'white',
-## Toc options
-#'collapse_navigation': False,
-#'sticky_navigation': True,
-#'navigation_depth': 4,
-#'includehidden': True,
-#'titles_only': False }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_logo='_static/incore_logo.png'
+html_show_license = True
+docs_title = 'Docs / %s' %(version)
+# The name of an image file (within the static path) to use as favicon of the
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+html_favicon = '_static/onlyC.png'
 html_context = {
     'css_files': [
         '_static/theme_overrides.css',  # override wide tables in RTD theme
+        '_static/custom.css',
         ],
+    'show_license': html_show_license,
+    'docs_title': docs_title,
+    'is_release': False,
+    'theme_logo_only': False,
+    'current_version': version,
      }
+html_last_updated_fmt = '%b %d, %Y'
+# If false, no module index is generated.
+html_domain_indices = False
+
+# If false, no index is generated.
+html_use_index = True
+
+# If true, the index is split into individual pages for each letter.
+html_split_index = True
+
+# If true, links to the reST sources are added to the pages.
+html_show_sourcelink = False
+
+# If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
+html_show_sphinx = False
+
+# If true, license is shown in the HTML footer. Default is True.
+html_show_license = True
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -167,7 +176,6 @@ htmlhelp_basename = 'ChromiteCoreGen'
 
 # -- Options for LaTeX output ------------------------------------------------
 latex_engine='xelatex'
-numfig = True
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
@@ -249,7 +257,7 @@ latex_elements = {
             %%% Alternating Header for two side
             \fancyhead[RO]{\small \nouppercase{\leftmark}}
             \fancyhead[RE]{\small \nouppercase{\leftmark}}
-            \fancyhead[LE,LO]{\py@HeaderFamily \@title\sphinxheadercomma\py@release}
+            \fancyhead[LE,LO]{\py@HeaderFamily \@title\sphinxheadercomma\releasename}
             %\fancyhead[RE,RO]{\py@HeaderFamily \c@chapter}
 
             %% for oneside: change footer at right side. If you want to use Left and right then use same as header defined above.

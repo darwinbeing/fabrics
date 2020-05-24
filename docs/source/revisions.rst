@@ -1,8 +1,16 @@
 Revisions
 =========
 
-**Version [1.1.2]**
-^^^^^^^^^^^^^^^^^^^
+[1.1.3]
+  - IP updates (1.1.3)
+
+    * added an extra master-transactor side fifo arry for the W channel book-keeping
+
+  - Doc updates (May 27 2020)
+
+    * updated docs extensively to capture the working of the current implementation.
+
+[1.1.2]
   - Doc updates (May 7 2020)
 
     * remove version from the front page.
@@ -12,14 +20,12 @@ Revisions
     * explicitly check if the master xactors have pending transactions, for participation in round robin 
       arbitration. This has been applied to axi4 and axi4l fabrics
 
-**Version [1.1.1]**
-^^^^^^^^^^^^^^^^^^^
+[1.1.1]
   - IP updates (1.1.1)
     
     * removing dtc dependency check from manager.sh
 
-**Version [1.1.0]**
-^^^^^^^^^^^^^^^^^^^
+[1.1.0]
   - Doc updates (April 23 2020)
 
     * updated steps in all IPs to use a config yaml

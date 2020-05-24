@@ -827,75 +827,75 @@ interface Ifc_axi4_buffer  #(numeric type wd_id,
 // ----------------------------------------------------------------
 module mkaxi4_buffer (Ifc_axi4_buffer #(wd_id, wd_addr, wd_data, wd_user));
 
-   FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkFIFOF;
-   FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wr_data <- mkFIFOF;
-   FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_wr_resp <- mkFIFOF;
+   FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_awfifo <- mkFIFOF;
+   FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wfifo <- mkFIFOF;
+   FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_bfifo <- mkFIFOF;
 
-   FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkFIFOF;
-   FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rd_data <- mkFIFOF;
+   FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_arfifo <- mkFIFOF;
+   FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rfifo <- mkFIFOF;
 
    method Action reset;
-      f_wr_addr.clear;
-      f_wr_data.clear;
-      f_wr_resp.clear;
+      f_awfifo.clear;
+      f_wfifo.clear;
+      f_bfifo.clear;
 
-      f_rd_addr.clear;
-      f_rd_data.clear;
+      f_arfifo.clear;
+      f_rfifo.clear;
    endmethod
 
    interface Ifc_axi4_server server_side;
-      interface i_wr_addr = to_FIFOF_I (f_wr_addr);
-      interface i_wr_data = to_FIFOF_I (f_wr_data);
-      interface o_wr_resp = to_FIFOF_O (f_wr_resp);
+      interface i_wr_addr = to_FIFOF_I (f_awfifo);
+      interface i_wr_data = to_FIFOF_I (f_wfifo);
+      interface o_wr_resp = to_FIFOF_O (f_bfifo);
 
-      interface i_rd_addr = to_FIFOF_I (f_rd_addr);
-      interface o_rd_data = to_FIFOF_O (f_rd_data);
+      interface i_rd_addr = to_FIFOF_I (f_arfifo);
+      interface o_rd_data = to_FIFOF_O (f_rfifo);
    endinterface
 
    interface Ifc_axi4_client client_side;
-      interface o_wr_addr = to_FIFOF_O (f_wr_addr);
-      interface o_wr_data = to_FIFOF_O (f_wr_data);
-      interface i_wr_resp = to_FIFOF_I (f_wr_resp);
+      interface o_wr_addr = to_FIFOF_O (f_awfifo);
+      interface o_wr_data = to_FIFOF_O (f_wfifo);
+      interface i_wr_resp = to_FIFOF_I (f_bfifo);
 
-      interface o_rd_addr = to_FIFOF_O (f_rd_addr);
-      interface i_rd_data = to_FIFOF_I (f_rd_data);
+      interface o_rd_addr = to_FIFOF_O (f_arfifo);
+      interface i_rd_data = to_FIFOF_I (f_rfifo);
    endinterface
 endmodule:mkaxi4_buffer
 
 module mkaxi4_buffer_2 (Ifc_axi4_buffer #(wd_id, wd_addr, wd_data, wd_user));
 
-   FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkMaster_EdgeFIFOF;
-   FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wr_data <- mkMaster_EdgeFIFOF;
-   FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_wr_resp <- mkSlave_EdgeFIFOF;
+   FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_awfifo <- mkMaster_EdgeFIFOF;
+   FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wfifo <- mkMaster_EdgeFIFOF;
+   FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_bfifo <- mkSlave_EdgeFIFOF;
 
-   FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkMaster_EdgeFIFOF;
-   FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rd_data <- mkSlave_EdgeFIFOF;
+   FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_arfifo <- mkMaster_EdgeFIFOF;
+   FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rfifo <- mkSlave_EdgeFIFOF;
 
    method Action reset;
-      f_wr_addr.clear;
-      f_wr_data.clear;
-      f_wr_resp.clear;
+      f_awfifo.clear;
+      f_wfifo.clear;
+      f_bfifo.clear;
 
-      f_rd_addr.clear;
-      f_rd_data.clear;
+      f_arfifo.clear;
+      f_rfifo.clear;
    endmethod
 
    interface Ifc_axi4_server server_side;
-      interface i_wr_addr = to_FIFOF_I (f_wr_addr);
-      interface i_wr_data = to_FIFOF_I (f_wr_data);
-      interface o_wr_resp = to_FIFOF_O (f_wr_resp);
+      interface i_wr_addr = to_FIFOF_I (f_awfifo);
+      interface i_wr_data = to_FIFOF_I (f_wfifo);
+      interface o_wr_resp = to_FIFOF_O (f_bfifo);
 
-      interface i_rd_addr = to_FIFOF_I (f_rd_addr);
-      interface o_rd_data = to_FIFOF_O (f_rd_data);
+      interface i_rd_addr = to_FIFOF_I (f_arfifo);
+      interface o_rd_data = to_FIFOF_O (f_rfifo);
    endinterface
 
    interface Ifc_axi4_client client_side;
-      interface o_wr_addr = to_FIFOF_O (f_wr_addr);
-      interface o_wr_data = to_FIFOF_O (f_wr_data);
-      interface i_wr_resp = to_FIFOF_I (f_wr_resp);
+      interface o_wr_addr = to_FIFOF_O (f_awfifo);
+      interface o_wr_data = to_FIFOF_O (f_wfifo);
+      interface i_wr_resp = to_FIFOF_I (f_bfifo);
 
-      interface o_rd_addr = to_FIFOF_O (f_rd_addr);
-      interface i_rd_data = to_FIFOF_I (f_rd_data);
+      interface o_rd_addr = to_FIFOF_O (f_arfifo);
+      interface i_rd_data = to_FIFOF_I (f_rfifo);
    endinterface
 endmodule:mkaxi4_buffer_2
 
@@ -927,51 +927,51 @@ module mkaxi4_master_xactor #( parameter QueueSize sz)
   Bool guarded   = False;
 
   // These FIFOs are guarded on BSV side, unguarded on AXI side
-  FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (guarded, unguarded, sz.wr_req_depth);
-  FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (guarded, unguarded, sz.wr_req_depth);
-  FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (guarded, unguarded, sz.rd_req_depth);
+  FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_awfifo <- mkGSizedFIFOF (guarded, unguarded, sz.wr_req_depth);
+  FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wfifo <- mkGSizedFIFOF (guarded, unguarded, sz.wr_req_depth);
+  FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_arfifo <- mkGSizedFIFOF (guarded, unguarded, sz.rd_req_depth);
 
-  FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (unguarded, guarded, sz.wr_resp_depth);
-  FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (unguarded, guarded, sz.rd_resp_depth);
+  FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_bfifo <- mkGSizedFIFOF (unguarded, guarded, sz.wr_resp_depth);
+  FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rfifo <- mkGSizedFIFOF (unguarded, guarded, sz.rd_resp_depth);
 
   // ----------------------------------------------------------------
   // INTERFACE
 
   method Action reset;
-    f_wr_addr.clear;
-    f_wr_data.clear;
-    f_wr_resp.clear;
-    f_rd_addr.clear;
-    f_rd_data.clear;
+    f_awfifo.clear;
+    f_wfifo.clear;
+    f_bfifo.clear;
+    f_arfifo.clear;
+    f_rfifo.clear;
   endmethod
 
   // AXI side
   interface axi4_side = interface Ifc_axi4_master;
 		// Wr Addr channel
-		method Bool            m_awvalid  = f_wr_addr.notEmpty;
-		method Bit #(wd_id)    m_awid     = f_wr_addr.first.awid;
-		method Bit #(wd_addr)  m_awaddr   = f_wr_addr.first.awaddr;
-		method Bit #(8)        m_awlen    = f_wr_addr.first.awlen;
-		method Axi4_size       m_awsize   = f_wr_addr.first.awsize;
-		method Bit #(2)        m_awburst  = f_wr_addr.first.awburst;
-		method Bit #(1)        m_awlock   = f_wr_addr.first.awlock;
-		method Bit #(4)        m_awcache  = f_wr_addr.first.awcache;
-		method Bit #(3)        m_awprot   = f_wr_addr.first.awprot;
-		method Bit #(4)        m_awqos    = f_wr_addr.first.awqos;
-		method Bit #(4)        m_awregion = f_wr_addr.first.awregion;
-		method Bit #(wd_user)  m_awuser   = f_wr_addr.first.awuser;
+		method Bool            m_awvalid  = f_awfifo.notEmpty;
+		method Bit #(wd_id)    m_awid     = f_awfifo.first.awid;
+		method Bit #(wd_addr)  m_awaddr   = f_awfifo.first.awaddr;
+		method Bit #(8)        m_awlen    = f_awfifo.first.awlen;
+		method Axi4_size       m_awsize   = f_awfifo.first.awsize;
+		method Bit #(2)        m_awburst  = f_awfifo.first.awburst;
+		method Bit #(1)        m_awlock   = f_awfifo.first.awlock;
+		method Bit #(4)        m_awcache  = f_awfifo.first.awcache;
+		method Bit #(3)        m_awprot   = f_awfifo.first.awprot;
+		method Bit #(4)        m_awqos    = f_awfifo.first.awqos;
+		method Bit #(4)        m_awregion = f_awfifo.first.awregion;
+		method Bit #(wd_user)  m_awuser   = f_awfifo.first.awuser;
 		method Action m_awready (Bool awready);
-		   if (f_wr_addr.notEmpty && awready) f_wr_addr.deq;
+		   if (f_awfifo.notEmpty && awready) f_awfifo.deq;
 		endmethod
 
 		// Wr Data channel
-		method Bool                       m_wvalid = f_wr_data.notEmpty;
-		method Bit #(wd_data)             m_wdata  = f_wr_data.first.wdata;
-		method Bit #(TDiv #(wd_data, 8))  m_wstrb  = f_wr_data.first.wstrb;
-		method Bool                       m_wlast  = f_wr_data.first.wlast;
-		method Bit #(wd_user)             m_wuser  = f_wr_data.first.wuser;
+		method Bool                       m_wvalid = f_wfifo.notEmpty;
+		method Bit #(wd_data)             m_wdata  = f_wfifo.first.wdata;
+		method Bit #(TDiv #(wd_data, 8))  m_wstrb  = f_wfifo.first.wstrb;
+		method Bool                       m_wlast  = f_wfifo.first.wlast;
+		method Bit #(wd_user)             m_wuser  = f_wfifo.first.wuser;
 		method Action m_wready (Bool wready);
-		   if (f_wr_data.notEmpty && wready) f_wr_data.deq;
+		   if (f_wfifo.notEmpty && wready) f_wfifo.deq;
 		endmethod
 
 		// Wr Response channel
@@ -979,32 +979,32 @@ module mkaxi4_master_xactor #( parameter QueueSize sz)
 		 	                      Bit #(wd_id)   bid,
 		 	                      Bit #(2)       bresp,
 		 	                      Bit #(wd_user) buser);
-		  if (bvalid && f_wr_resp.notFull)
-		    f_wr_resp.enq (Axi4_wr_resp { bid:   bid,
+		  if (bvalid && f_bfifo.notFull)
+		    f_bfifo.enq (Axi4_wr_resp { bid:   bid,
 		 		                              bresp: bresp,
 		 		                              buser: buser});
 		endmethod
 
 		method Bool m_bready;
-		  return f_wr_resp.notFull;
+		  return f_bfifo.notFull;
 		endmethod
 
 		// Rd Addr channel
-		method Bool            m_arvalid  = f_rd_addr.notEmpty;
-		method Bit #(wd_id)    m_arid     = f_rd_addr.first.arid;
-		method Bit #(wd_addr)  m_araddr   = f_rd_addr.first.araddr;
-		method Bit #(8)        m_arlen    = f_rd_addr.first.arlen;
-		method Axi4_size       m_arsize   = f_rd_addr.first.arsize;
-		method Bit #(2)        m_arburst  = f_rd_addr.first.arburst;
-		method Bit #(1)        m_arlock   = f_rd_addr.first.arlock;
-		method Bit #(4)        m_arcache  = f_rd_addr.first.arcache;
-		method Bit #(3)        m_arprot   = f_rd_addr.first.arprot;
-		method Bit #(4)        m_arqos    = f_rd_addr.first.arqos;
-		method Bit #(4)        m_arregion = f_rd_addr.first.arregion;
-		method Bit #(wd_user)  m_aruser   = f_rd_addr.first.aruser;
+		method Bool            m_arvalid  = f_arfifo.notEmpty;
+		method Bit #(wd_id)    m_arid     = f_arfifo.first.arid;
+		method Bit #(wd_addr)  m_araddr   = f_arfifo.first.araddr;
+		method Bit #(8)        m_arlen    = f_arfifo.first.arlen;
+		method Axi4_size       m_arsize   = f_arfifo.first.arsize;
+		method Bit #(2)        m_arburst  = f_arfifo.first.arburst;
+		method Bit #(1)        m_arlock   = f_arfifo.first.arlock;
+		method Bit #(4)        m_arcache  = f_arfifo.first.arcache;
+		method Bit #(3)        m_arprot   = f_arfifo.first.arprot;
+		method Bit #(4)        m_arqos    = f_arfifo.first.arqos;
+		method Bit #(4)        m_arregion = f_arfifo.first.arregion;
+		method Bit #(wd_user)  m_aruser   = f_arfifo.first.aruser;
 
 		method Action m_arready (Bool arready);
-		  if (f_rd_addr.notEmpty && arready) f_rd_addr.deq;
+		  if (f_arfifo.notEmpty && arready) f_arfifo.deq;
 		endmethod
 
 		// Rd Data channel
@@ -1014,8 +1014,8 @@ module mkaxi4_master_xactor #( parameter QueueSize sz)
 					                  Bit #(2)       rresp,     // in
 					                  Bool           rlast,     // in
 					                  Bit #(wd_user) ruser);    // in
-      if (rvalid && f_rd_data.notFull)
-			  f_rd_data.enq (Axi4_rd_data {rid  : rid,
+      if (rvalid && f_rfifo.notFull)
+			  f_rfifo.enq (Axi4_rd_data {rid  : rid,
 						                         rdata: rdata,
 						                         rresp: rresp,
 						                         rlast: rlast,
@@ -1023,19 +1023,19 @@ module mkaxi4_master_xactor #( parameter QueueSize sz)
 		endmethod
 
 		method Bool m_rready;
-		  return f_rd_data.notFull;
+		  return f_rfifo.notFull;
 		endmethod
 
 	endinterface;
 
    // FIFOF side
   interface fifo_side = interface Ifc_axi4_server
-    interface i_wr_addr = to_FIFOF_I (f_wr_addr);
-    interface i_wr_data = to_FIFOF_I (f_wr_data);
-    interface o_wr_resp = to_FIFOF_O (f_wr_resp);
+    interface i_wr_addr = to_FIFOF_I (f_awfifo);
+    interface i_wr_data = to_FIFOF_I (f_wfifo);
+    interface o_wr_resp = to_FIFOF_O (f_bfifo);
 
-    interface i_rd_addr = to_FIFOF_I (f_rd_addr);
-    interface o_rd_data = to_FIFOF_O (f_rd_data);
+    interface i_rd_addr = to_FIFOF_I (f_arfifo);
+    interface o_rd_data = to_FIFOF_O (f_rfifo);
   endinterface;
 endmodule: mkaxi4_master_xactor
 
@@ -1209,22 +1209,22 @@ module mkaxi4_slave_xactor #( parameter QueueSize sz)
   Bool guarded   = False;
 
   // These FIFOs are guarded on BSV side, unguarded on AXI side
-  FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_wr_addr <- mkGSizedFIFOF (unguarded, guarded, sz.wr_req_depth);
-  FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wr_data <- mkGSizedFIFOF (unguarded, guarded, sz.wr_req_depth);
-  FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_rd_addr <- mkGSizedFIFOF (unguarded, guarded, sz.rd_req_depth);
+  FIFOF #(Axi4_wr_addr #(wd_id, wd_addr, wd_user))  f_awfifo <- mkGSizedFIFOF (unguarded, guarded, sz.wr_req_depth);
+  FIFOF #(Axi4_wr_data #(wd_data, wd_user))         f_wfifo <- mkGSizedFIFOF (unguarded, guarded, sz.wr_req_depth);
+  FIFOF #(Axi4_rd_addr #(wd_id, wd_addr, wd_user))  f_arfifo <- mkGSizedFIFOF (unguarded, guarded, sz.rd_req_depth);
 
-  FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_wr_resp <- mkGSizedFIFOF (guarded, unguarded, sz.wr_resp_depth);
-  FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rd_data <- mkGSizedFIFOF (guarded, unguarded, sz.rd_resp_depth);
+  FIFOF #(Axi4_wr_resp #(wd_id, wd_user))           f_bfifo <- mkGSizedFIFOF (guarded, unguarded, sz.wr_resp_depth);
+  FIFOF #(Axi4_rd_data #(wd_id, wd_data, wd_user))  f_rfifo <- mkGSizedFIFOF (guarded, unguarded, sz.rd_resp_depth);
 
   // ----------------------------------------------------------------
   // INTERFACE
 
   method Action reset;
-    f_wr_addr.clear;
-    f_wr_data.clear;
-    f_wr_resp.clear;
-    f_rd_addr.clear;
-    f_rd_data.clear;
+    f_awfifo.clear;
+    f_wfifo.clear;
+    f_bfifo.clear;
+    f_arfifo.clear;
+    f_rfifo.clear;
   endmethod
 
   // AXI side
@@ -1242,8 +1242,8 @@ module mkaxi4_slave_xactor #( parameter QueueSize sz)
 	 	 	                       Bit #(4)        awqos,
 	 	 	                       Bit #(4)        awregion,
 	 	 	                       Bit #(wd_user)  awuser);
-	 	  if (awvalid && f_wr_addr.notFull)
-	 	    f_wr_addr.enq (Axi4_wr_addr {awid:     awid,
+	 	  if (awvalid && f_awfifo.notFull)
+	 	    f_awfifo.enq (Axi4_wr_addr {awid:     awid,
 	 	 		                             awaddr:   awaddr,
 	 	 		                             awlen:    awlen,
 	 	 		                             awsize:   awsize,
@@ -1257,7 +1257,7 @@ module mkaxi4_slave_xactor #( parameter QueueSize sz)
 	 	endmethod
 
 	 	method Bool m_awready;
-	 	  return f_wr_addr.notFull;
+	 	  return f_awfifo.notFull;
 	 	endmethod
 
 	 	// Wr Data channel
@@ -1266,25 +1266,25 @@ module mkaxi4_slave_xactor #( parameter QueueSize sz)
 	 	 	                      Bit #(TDiv #(wd_data, 8))  wstrb,
 	 	 	                      Bool                       wlast,
 	 	 	                      Bit #(wd_user)             wuser);
-	 	  if (wvalid && f_wr_data.notFull)
-	 	    f_wr_data.enq (Axi4_wr_data { wdata: wdata,
+	 	  if (wvalid && f_wfifo.notFull)
+	 	    f_wfifo.enq (Axi4_wr_data { wdata: wdata,
 	 	 		                              wstrb: wstrb,
 	 	 		                              wlast: wlast,
 	 	 		                              wuser: wuser});
 	 	endmethod
 
 	 	method Bool m_wready;
-	 	  return f_wr_data.notFull;
+	 	  return f_wfifo.notFull;
 	 	endmethod
 
 	 	// Wr Response channel
-	 	method Bool           m_bvalid = f_wr_resp.notEmpty;
-	 	method Bit #(wd_id)   m_bid    = f_wr_resp.first.bid;
-	 	method Bit #(2)       m_bresp  = f_wr_resp.first.bresp;
-	 	method Bit #(wd_user) m_buser  = f_wr_resp.first.buser;
+	 	method Bool           m_bvalid = f_bfifo.notEmpty;
+	 	method Bit #(wd_id)   m_bid    = f_bfifo.first.bid;
+	 	method Bit #(2)       m_bresp  = f_bfifo.first.bresp;
+	 	method Bit #(wd_user) m_buser  = f_bfifo.first.buser;
 	 	method Action m_bready (Bool bready);
-	 	  if (bready && f_wr_resp.notEmpty)
-	 	    f_wr_resp.deq;
+	 	  if (bready && f_bfifo.notEmpty)
+	 	    f_bfifo.deq;
 	 	endmethod
 
 	 	// Rd Addr channel
@@ -1300,8 +1300,8 @@ module mkaxi4_slave_xactor #( parameter QueueSize sz)
 	 	 	                       Bit #(4)        arqos,
 	 	 	                       Bit #(4)        arregion,
 	 	 	                       Bit #(wd_user)  aruser);
-	 	  if (arvalid && f_rd_addr.notFull)
-	 	    f_rd_addr.enq (Axi4_rd_addr { arid:     arid,
+	 	  if (arvalid && f_arfifo.notFull)
+	 	    f_arfifo.enq (Axi4_rd_addr { arid:     arid,
 	 	 		                              araddr:   araddr,
 	 	 		                              arlen:    arlen,
 	 	 		                              arsize:   arsize,
@@ -1315,30 +1315,30 @@ module mkaxi4_slave_xactor #( parameter QueueSize sz)
 	 	endmethod
 
 	 	method Bool m_arready;
-	 	  return f_rd_addr.notFull;
+	 	  return f_arfifo.notFull;
 	 	endmethod
 
 	 	// Rd Data channel
-	 	method Bool           m_rvalid = f_rd_data.notEmpty;
-	 	method Bit #(wd_id)   m_rid    = f_rd_data.first.rid;
-	 	method Bit #(wd_data) m_rdata  = f_rd_data.first.rdata;
-	 	method Bit #(2)       m_rresp  = f_rd_data.first.rresp;
-	 	method Bool           m_rlast  = f_rd_data.first.rlast;
-	 	method Bit #(wd_user) m_ruser  = f_rd_data.first.ruser;
+	 	method Bool           m_rvalid = f_rfifo.notEmpty;
+	 	method Bit #(wd_id)   m_rid    = f_rfifo.first.rid;
+	 	method Bit #(wd_data) m_rdata  = f_rfifo.first.rdata;
+	 	method Bit #(2)       m_rresp  = f_rfifo.first.rresp;
+	 	method Bool           m_rlast  = f_rfifo.first.rlast;
+	 	method Bit #(wd_user) m_ruser  = f_rfifo.first.ruser;
 	 	method Action m_rready (Bool rready);
-	 	  if (rready && f_rd_data.notEmpty)
-	 	    f_rd_data.deq;
+	 	  if (rready && f_rfifo.notEmpty)
+	 	    f_rfifo.deq;
 	 	endmethod
 	endinterface;
 
   interface fifo_side = interface Ifc_axi4_client
     // FIFOF side
-    interface o_wr_addr = to_FIFOF_O (f_wr_addr);
-    interface o_wr_data = to_FIFOF_O (f_wr_data);
-    interface i_wr_resp = to_FIFOF_I (f_wr_resp);
+    interface o_wr_addr = to_FIFOF_O (f_awfifo);
+    interface o_wr_data = to_FIFOF_O (f_wfifo);
+    interface i_wr_resp = to_FIFOF_I (f_bfifo);
 
-    interface o_rd_addr = to_FIFOF_O (f_rd_addr);
-    interface i_rd_data = to_FIFOF_I (f_rd_data);
+    interface o_rd_addr = to_FIFOF_O (f_arfifo);
+    interface i_rd_data = to_FIFOF_I (f_rfifo);
   endinterface;
 endmodule: mkaxi4_slave_xactor
 
@@ -1635,7 +1635,8 @@ module mkaxi4_err(Ifc_axi4_slave #(wd_id, wd_addr, wd_data, wd_user));
 	  end
 
     rg_write_response <= b;
-	  `logLevel( err_slave, 0, $format("ErrSlave: received write request: ",fshow_axi4_wr_addr(aw)))
+	  `logLevel( err_slave, 0, $format("ErrSlave: received write request: AW:",fshow_axi4_wr_addr(aw)))
+	  `logLevel( err_slave, 0, $format("ErrSlave: WD:",fshow_axi4_wr_data(w)))
   endrule:rl_receive_write_request
 
   // if the request is a write burst then keeping popping all the data on the data_channel and
@@ -1643,6 +1644,7 @@ module mkaxi4_err(Ifc_axi4_slave #(wd_id, wd_addr, wd_data, wd_user));
   rule rl_write_request_data_channel(write_state == Burst);
     
     let w  <- pop_o (s_xactor.fifo_side.o_wr_data);
+	  `logLevel( err_slave, 0, $format("ErrSlave: Burst WD:",fshow_axi4_wr_data(w)))
 
     if ( w.wlast ) begin
 		  s_xactor.fifo_side.i_wr_resp.enq (rg_write_response);

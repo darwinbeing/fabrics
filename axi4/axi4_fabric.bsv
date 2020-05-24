@@ -98,23 +98,25 @@ module mkaxi4_fabric #(
 
   // On an mi->sj write-transaction, this fifo records sj for master mi
   Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
-                                                 v_f_wr_sjs <- replicateM (mkSizedFIFOF (8));
+                                                 f_s_wr_route_info <- replicateM (mkSizedFIFOF (8));
 
   // On an mi->sj write-transaction, this fifo records mi for slave sj
-  Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) v_f_wr_mis  <- replicateM (mkSizedFIFOF (8));
+  Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) f_m_wr_route_info  <- replicateM (mkSizedFIFOF (8));
 
-  // On an mi->sj write-transaction, this fifo records a task (sj, awlen) for W channel
+  // On an mi->sj write-transaction, this fifo records a task (sj) for W channel
   Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
-      v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
+      f_s_wd_route_info <- replicateM (mkSizedBypassFIFOF(2));
+  Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm))) 
+      f_m_wd_route_info <- replicateM (mkSizedBypassFIFOF(2));
 
   // ----------------
   // Read-transaction book-keeping
 
   // On an mi->sj read-transaction, records sj for master mi
   Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
-                                                     v_f_rd_sjs <- replicateM (mkSizedFIFOF (8));
+                                                     f_s_rd_route_info <- replicateM (mkSizedFIFOF (8));
   // On an mi->sj read-transaction, records (mi,arlen) for slave sj
-  Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    v_f_rd_mis <- replicateM (mkSizedFIFOF (8));
+  Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    f_m_rd_route_info <- replicateM (mkSizedFIFOF (8));
 
   /*doc:reg: round robin counter for read requests*/
   Vector #(tn_num_slaves, Reg#(Bit#(TLog#(tn_num_masters)))) rg_rd_master_select
@@ -221,11 +223,12 @@ module mkaxi4_fabric #(
     	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
     	  // Enqueue a task for the W channel
-    	  v_f_wd_tasks      [mi].enq (fromInteger (sj));
+    	  f_s_wd_route_info   [mi].enq (fromInteger (sj));
+    	  f_m_wd_route_info   [sj].enq (fromInteger (mi));
     
     	  // Book-keeping
-    	  v_f_wr_mis        [sj].enq (fromInteger (mi));
-    	  v_f_wr_sjs        [mi].enq (fromInteger (sj));
+    	  f_m_wr_route_info        [sj].enq (fromInteger (mi));
+    	  f_s_wr_route_info        [mi].enq (fromInteger (sj));
 	      if (&fixed_priority_wr == 0) begin
   	      if (mi == num_masters - 1)
 	          rg_wr_master_select[sj] <= 0;
@@ -242,7 +245,9 @@ module mkaxi4_fabric #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
-    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj) && write_slave[sj] == 1 );
+    rule rl_wr_xaction_master_to_slave_data (   f_s_wd_route_info [mi].first == fromInteger(sj) 
+                                              && f_m_wd_route_info [sj].first == fromInteger(mi)
+                                              && write_slave[sj] == 1 );
       
       Axi4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
 
@@ -253,7 +258,8 @@ module mkaxi4_fabric #(
       
       if ( d.wlast ) begin
         // End of burst
-        v_f_wd_tasks [mi].deq;
+        f_s_wd_route_info [mi].deq;
+        f_m_wd_route_info [sj].deq;
       end
    endrule:rl_wr_xaction_master_to_slave_data
 
@@ -261,10 +267,10 @@ module mkaxi4_fabric #(
 
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves ; sj = sj + 1)
-    	rule rl_wr_resp_slave_to_master (   (v_f_wr_mis [sj].first == fromInteger (mi)) &&
-                                  	 	    (v_f_wr_sjs [mi].first == fromInteger (sj)) && write_slave[sj] == 1 );
-	      v_f_wr_mis [sj].deq;
-	      v_f_wr_sjs [mi].deq;
+    	rule rl_wr_resp_slave_to_master (   (f_m_wr_route_info [sj].first == fromInteger (mi)) &&
+                                  	 	    (f_s_wr_route_info [mi].first == fromInteger (sj)) && write_slave[sj] == 1 );
+	      f_m_wr_route_info [sj].deq;
+	      f_s_wr_route_info [mi].deq;
 	      Axi4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
 
 	      xactors_from_masters [mi].fifo_side.i_wr_resp.enq (b);
@@ -283,8 +289,8 @@ module mkaxi4_fabric #(
 	      Axi4_rd_addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
-	      v_f_rd_mis [sj].enq (fromInteger (mi));
-	      v_f_rd_sjs [mi].enq (fromInteger (sj));
+	      f_m_rd_route_info [sj].enq (fromInteger (mi));
+	      f_s_rd_route_info [mi].enq (fromInteger (sj));
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
 	      `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))
 	      if (&fixed_priority_rd == 0) begin
@@ -300,16 +306,16 @@ module mkaxi4_fabric #(
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
 
-	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
-                              	 			(v_f_rd_sjs [mi].first == fromInteger (sj)) && read_slave[sj] == 1  );
+	    rule rl_rd_resp_slave_to_master (f_m_rd_route_info [sj].first == fromInteger (mi) &&
+                              	 			(f_s_rd_route_info [mi].first == fromInteger (sj)) && read_slave[sj] == 1  );
 
 	      Axi4_rd_data #(wd_id, wd_data, wd_user) 
 	          r <- pop_o (xactors_to_slaves [sj].fifo_side.o_rd_data);
 
 	      if ( r.rlast ) begin
 	        // Final beat of burst
-	        v_f_rd_mis [sj].deq;
-	        v_f_rd_sjs [mi].deq;
+	        f_m_rd_route_info [sj].deq;
+	        f_s_rd_route_info [mi].deq;
         end
         xactors_from_masters [mi].fifo_side.i_rd_data.enq (r);
 	      `logLevel( fabric, 0, $format("FABRIC: RDR: slave[%2d] -> master[%2d]", sj, mi))
@@ -360,23 +366,25 @@ module mkaxi4_fabric_2 #(
 
   // On an mi->sj write-transaction, this fifo records sj for master mi
   Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
-                                                 v_f_wr_sjs <- replicateM (mkSizedFIFOF (8));
+                                                 f_s_wr_route_info <- replicateM (mkSizedFIFOF (8));
 
   // On an mi->sj write-transaction, this fifo records mi for slave sj
-  Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) v_f_wr_mis  <- replicateM (mkSizedFIFOF (8));
+  Vector #(tn_num_slaves,  FIFOF #(Bit #(log_nm))) f_m_wr_route_info  <- replicateM (mkSizedFIFOF (8));
 
-  // On an mi->sj write-transaction, this fifo records a task (sj, awlen) for W channel
+  // On an mi->sj write-transaction, this fifo records a task (sj) for W channel
   Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
-      v_f_wd_tasks <- replicateM (mkSizedBypassFIFOF(2));
+      f_s_wd_route_info <- replicateM (mkSizedBypassFIFOF(2));
+  Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm))) 
+      f_m_wd_route_info <- replicateM (mkSizedBypassFIFOF(2));
 
   // ----------------
   // Read-transaction book-keeping
 
   // On an mi->sj read-transaction, records sj for master mi
   Vector #(tn_num_masters, FIFOF #(Bit #(log_ns))) 
-                                                     v_f_rd_sjs <- replicateM (mkSizedFIFOF (8));
+                                                     f_s_rd_route_info <- replicateM (mkSizedFIFOF (8));
   // On an mi->sj read-transaction, records (mi,arlen) for slave sj
-  Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    v_f_rd_mis <- replicateM (mkSizedFIFOF (8));
+  Vector #(tn_num_slaves, FIFOF #(Bit #(log_nm)))    f_m_rd_route_info <- replicateM (mkSizedFIFOF (8));
 
   /*doc:reg: round robin counter for read requests*/
   Vector #(tn_num_slaves, Reg#(Bit#(TLog#(tn_num_masters)))) rg_rd_master_select
@@ -484,11 +492,12 @@ module mkaxi4_fabric_2 #(
     	  xactors_to_slaves [sj].fifo_side.i_wr_addr.enq (a);
     
     	  // Enqueue a task for the W channel
-    	  v_f_wd_tasks      [mi].enq (fromInteger (sj));
+    	  f_s_wd_route_info      [mi].enq (fromInteger (sj));
+    	  f_m_wd_route_info      [sj].enq (fromInteger (mi));
     
     	  // Book-keeping
-    	  v_f_wr_mis        [sj].enq (fromInteger (mi));
-    	  v_f_wr_sjs        [mi].enq (fromInteger (sj));
+    	  f_m_wr_route_info        [sj].enq (fromInteger (mi));
+    	  f_s_wr_route_info        [mi].enq (fromInteger (sj));
 	      
 	      if (&fixed_priority_wr == 0) begin
   	      if (mi == num_masters - 1)
@@ -506,7 +515,8 @@ module mkaxi4_fabric_2 #(
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
     // Handle W channel burst
     // Note: awlen is encoded as 0..255 for burst lengths of 1..256
-    rule rl_wr_xaction_master_to_slave_data ( v_f_wd_tasks [mi].first == fromInteger(sj)
+    rule rl_wr_xaction_master_to_slave_data (   f_s_wd_route_info [mi].first == fromInteger(sj)
+                                              && f_m_wd_route_info [sj].first == fromInteger(mi)
                                               && write_slave[sj] == 1 );
       
       Axi4_wr_data #(wd_data, wd_user) d <- pop_o (xactors_from_masters [mi].fifo_side.o_wr_data);
@@ -518,7 +528,8 @@ module mkaxi4_fabric_2 #(
       
       if ( d.wlast ) begin
         // End of burst
-        v_f_wd_tasks [mi].deq;
+        f_s_wd_route_info [mi].deq;
+        f_m_wd_route_info [sj].deq;
       end
    endrule:rl_wr_xaction_master_to_slave_data
 
@@ -526,11 +537,11 @@ module mkaxi4_fabric_2 #(
 
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
-    	rule rl_wr_resp_slave_to_master (   (v_f_wr_mis [sj].first == fromInteger (mi)) &&
-	 	                             		      (v_f_wr_sjs [mi].first == fromInteger (sj)) &&
+    	rule rl_wr_resp_slave_to_master (   (f_m_wr_route_info [sj].first == fromInteger (mi)) &&
+	 	                             		      (f_s_wr_route_info [mi].first == fromInteger (sj)) &&
 	 	                             		      write_slave[sj] == 1);
-	      v_f_wr_mis [sj].deq;
-	      v_f_wr_sjs [mi].deq;
+	      f_m_wr_route_info [sj].deq;
+	      f_s_wr_route_info [mi].deq;
 	      Axi4_wr_resp #(wd_id, wd_user) b <- pop_o (xactors_to_slaves [sj].fifo_side.o_wr_resp);
 
 	      xactors_from_masters [mi].fifo_side.i_wr_resp.enq (b);
@@ -549,8 +560,8 @@ module mkaxi4_fabric_2 #(
 	      Axi4_rd_addr #(wd_id, wd_addr, wd_user) 
 	          a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
-	      v_f_rd_mis [sj].enq (fromInteger (mi));
-	      v_f_rd_sjs [mi].enq (fromInteger (sj));
+	      f_m_rd_route_info [sj].enq (fromInteger (mi));
+	      f_s_rd_route_info [mi].enq (fromInteger (sj));
 	      if (&fixed_priority_rd == 0) begin
   	      if (mi == num_masters - 1)
 	          rg_rd_master_select[sj] <= 0;
@@ -566,8 +577,8 @@ module mkaxi4_fabric_2 #(
   for (Integer mi = 0; mi < num_masters; mi = mi + 1)
     for (Integer sj = 0; sj < num_slaves; sj = sj + 1)
 
-	    rule rl_rd_resp_slave_to_master (v_f_rd_mis [sj].first == fromInteger (mi) &&
-	 			                              (v_f_rd_sjs [mi].first == fromInteger (sj))&& 
+	    rule rl_rd_resp_slave_to_master (f_m_rd_route_info [sj].first == fromInteger (mi) &&
+	 			                              (f_s_rd_route_info [mi].first == fromInteger (sj))&& 
 	 			                               read_slave[sj] == 1);
 
 	      Axi4_rd_data #(wd_id, wd_data, wd_user) 
@@ -575,8 +586,8 @@ module mkaxi4_fabric_2 #(
 
 	      if ( r.rlast ) begin
 	        // Final beat of burst
-	        v_f_rd_mis [sj].deq;
-	        v_f_rd_sjs [mi].deq;
+	        f_m_rd_route_info [sj].deq;
+	        f_s_rd_route_info [mi].deq;
         end
         xactors_from_masters [mi].fifo_side.i_rd_data.enq (r);
 	      `logLevel( fabric, 0, $format("FABRIC: RDR: slave[%2d] -> master[%2d]", sj, mi))

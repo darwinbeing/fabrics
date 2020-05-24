@@ -3,6 +3,12 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.1.3] - 2020-05-24
+--------------------
+
+- added an extra master-transactor side fifo arry for the W channel book-keeping
+- updated docs extensively to capture the working of the current implementation.
+
 [1.1.2] - 2020-05-07
 --------------------
 
@@ -21,7 +27,7 @@ This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.htm
 - using cog to generate instance files and thereby verilog.
 - use same memory map function return type in apb as axi
 - round-robin logic in axi4/axi4lite updated. We now maintain a tiney register per slave to track
-its priority. This removes the restriction of having only max 5 masters on the crossbars.
+  its priority. This removes the restriction of having only max 5 masters on the crossbars.
 - remove README in axi4/test and axi4_lite/test folders
 - new targets in Makefile for generating bsv instance files through cogapp
 - suppressed warnings during Bluespec compilation

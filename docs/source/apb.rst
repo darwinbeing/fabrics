@@ -7,6 +7,7 @@ The interconnect is used to connect a single APB compliant master device to one 
 copmliant memory mapped slave devices.
 
 In this chapter ``S`` would represent the number of slaves connected to the interconnect.
+
 .. _apb_parameters:
 
 Parameters
