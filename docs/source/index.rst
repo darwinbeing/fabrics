@@ -1,9 +1,15 @@
-###########################
-AXI4 Cross-bar Interconnect
-###########################
+################
+Interconnect IPs
+################
+
+.. only:: html 
+
+  Welcome to Interconnect IPs Documentation version : |version|
+
 .. toctree::
   :glob:
-  :maxdepth: 2
+  :maxdepth: 1
+  :numbered:
 
   overview
   axi4_crossbar
