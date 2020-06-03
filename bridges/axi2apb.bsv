@@ -101,10 +101,13 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
             Log#(apb_bytes, lg_apb_bytes),
             Div#(axi_data, apb_data, child_count),
             Add#(d__, apb_bytes, axi_bytes),
+            Log#(axi_bytes, axi_byte_size),
 
             Add#(a__, TDiv#(apb_data, 8), TDiv#(axi_data, 8)), // strbs are also smaller
             Add#(b__, 8, axi_addr),
-            Mul#(apb_data, c__, axi_data) // Apb is a byte multiple of axi_data
+            Mul#(apb_data, c__, axi_data), // Apb is a byte multiple of axi_data
+            Add#(e__, axi_byte_size, axi_addr),
+            Add#(f__, apb_bytes, TDiv#(axi_data, 8))
            );
 
   let v_axi_data = valueOf(axi_data);
@@ -309,12 +312,15 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
   rule rl_write_frm_axi (rg_state == Idle);
     let axi_req  <- pop_o(axi_xactor.fifo_side.o_wr_addr);
     let axi_wreq = axi_xactor.fifo_side.o_wr_data.first;
+    Bit#(axi_byte_size) axi4_byte_index = truncate(axi_req.awaddr);
+    Bit#(apb_bytes) apb_wstrb = truncate(axi_wreq.wstrb >> axi4_byte_index);
+    Bit#(apb_data) apb_data_ = truncate(axi_wreq.wdata >> {axi4_byte_index, 3'b0});
     APB_request #(apb_addr, apb_data, user) apb_request = APB_request {
                                                                     paddr : truncate(axi_req.awaddr),
                                                                     prot  : axi_req.awprot,
                                                                     pwrite: True,
-                                                                    pwdata: truncate(axi_wreq.wdata),
-                                                                    pstrb : truncate(axi_wreq.wstrb),
+                                                                    pwdata: apb_data_,
+                                                                    pstrb : apb_wstrb,
                                                                     puser : axi_req.awuser};
     apb_xactor.fifo_side.i_request.enq(apb_request);
     rg_wr_request    <= axi_req;
@@ -450,7 +456,9 @@ instance Connectable #(Ifc_axi4_master #(axi_id, axi_addr, axi_data, user),
 
             Add#(a__, TDiv#(apb_data, 8), TDiv#(axi_data, 8)), // strbs are also smaller
             Add#(b__, 8, axi_addr),
-            Mul#(apb_data, c__, axi_data) // Apb is a byte multiple of axi_data
+            Mul#(apb_data, c__, axi_data), // Apb is a byte multiple of axi_data
+            Add#(e__, TLog#(axi_bytes), axi_addr),
+            Add#(f__, apb_bytes, TDiv#(axi_data, 8))
           );
   module mkConnection #(Ifc_axi4_master #(axi_id, axi_addr, axi_data, user) axi4_side,
                        Ifc_apb_slave #(apb_addr, apb_data, user)         apb_side)
@@ -475,7 +483,9 @@ instance Connectable #(Ifc_apb_slave #(apb_addr, apb_data, user),
 
             Add#(a__, TDiv#(apb_data, 8), TDiv#(axi_data, 8)), // strbs are also smaller
             Add#(b__, 8, axi_addr),
-            Mul#(apb_data, c__, axi_data) // Apb is a byte multiple of axi_data
+            Mul#(apb_data, c__, axi_data), // Apb is a byte multiple of axi_data
+            Add#(e__, TLog#(axi_bytes), axi_addr),
+            Add#(f__, apb_bytes, TDiv#(axi_data, 8))
           );
   module mkConnection #(Ifc_apb_slave #(apb_addr, apb_data, user)         apb_side,
                         Ifc_axi4_master #(axi_id, axi_addr, axi_data, user) axi4_side )

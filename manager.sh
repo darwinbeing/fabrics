@@ -39,7 +39,6 @@ usage () {
 }
 
 nuke () {
-  make restore
   for i in ${!repo_list[*]}; do
     local dirname=$(extract_name "${repo_list[$i]}") 
     echo "Deleting folder: ${dirname}"
@@ -74,7 +73,7 @@ update_deps () {
       (cd $DEPS_FOLDER/$dirname; git pull origin ${branch_list[$i]})
     else
       echo "Cloning Repo: " ${repo_list[$i]} 
-      git clone ${repo_list[$i]} $DEPS_FOLDER/$dirname --recursive
+      git clone ${repo_list[$i]}.git $DEPS_FOLDER/$dirname --recursive
       (cd $DEPS_FOLDER/$dirname; git checkout ${branch_list[$i]})
       (cd $DEPS_FOLDER/$dirname; git submodule update --init --recursive)
     fi

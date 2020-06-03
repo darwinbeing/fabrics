@@ -3,6 +3,13 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.1.4] - 2020-05-29
+--------------------
+
+- fixed manager.sh resolving clone issue  
+- fixed data and write strobe alignment in axi2apb and axi2axil bridges, when AXI data width >
+  target data width.
+
 [1.1.3] - 2020-05-24
 --------------------
 
