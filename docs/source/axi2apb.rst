@@ -74,6 +74,9 @@ APB data size. A beat is complete only when its corresponding child-bursts are o
 single-beat address is generated based on the burst-mode request and the burst size. Thus, the
 bridge can support all AXI4 burst-modes: incr, fixed and wrap.
 
+Also when the source (AXI4 side) data size is larger then the target (APB side), the data bytes and
+the write strobes are aligned based on the address to reflect correctly on the target side.
+
 When instantiated with same data-sizes, the child-burst logic is ommitted.
 
 Error mapping
