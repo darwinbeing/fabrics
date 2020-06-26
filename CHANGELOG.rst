@@ -3,6 +3,12 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.1.5] - 2020-06-26
+--------------------
+
+- bug fixes in data and write strobe alignment when master transaction is less-than-equal to the
+  slave side size.
+
 [1.1.4] - 2020-05-29
 --------------------
 

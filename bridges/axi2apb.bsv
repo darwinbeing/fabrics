@@ -312,9 +312,13 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
   rule rl_write_frm_axi (rg_state == Idle);
     let axi_req  <- pop_o(axi_xactor.fifo_side.o_wr_addr);
     let axi_wreq = axi_xactor.fifo_side.o_wr_data.first;
-    Bit#(axi_byte_size) axi4_byte_index = truncate(axi_req.awaddr);
-    Bit#(apb_bytes) apb_wstrb = truncate(axi_wreq.wstrb >> axi4_byte_index);
-    Bit#(apb_data) apb_data_ = truncate(axi_wreq.wdata >> {axi4_byte_index, 3'b0});
+    Bit#(8) request_size = ('b1) << axi_req.awsize;
+    Bit#(axi_byte_size) axi4_byte_access = truncate(axi_req.awaddr);
+    Bit#(axi_byte_size) axi4_byte_shift = (v_bytes_ratio > 1 && 
+                    request_size <= fromInteger(v_apb_bytes) && 
+                    axi4_byte_access > fromInteger(v_apb_bytes-1) )? axi4_byte_access : 0;
+    Bit#(apb_bytes) apb_wstrb = truncate(axi_wreq.wstrb >> axi4_byte_shift);
+    Bit#(apb_data) apb_data_ = truncate(axi_wreq.wdata >> {axi4_byte_shift, 3'b0});
     APB_request #(apb_addr, apb_data, user) apb_request = APB_request {
                                                                     paddr : truncate(axi_req.awaddr),
                                                                     prot  : axi_req.awprot,
@@ -328,7 +332,6 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
     rg_state         <= WriteResp;
     rg_accum_err     <= False;
     if (v_bytes_ratio > 1 ) begin
-      Bit#(8) request_size = ('b1) << axi_req.awsize;
       Bit#(apb_bytes) mask = '1;
       if(request_size > fromInteger(v_apb_bytes)) begin
         rg_req_beat   <= axi_req.awlen + 1;
@@ -354,7 +357,8 @@ module mkaxi2apb(Ifc_axi2apb#(axi_id, axi_addr, axi_data, apb_addr, apb_data, us
       rg_accum_mask <= '1;
         axi_xactor.fifo_side.o_wr_data.deq;
     end
-    `logLevel( bridge, 0, $format("Axi2Apb: Axi4-Write:",fshow_axi4_wr_addr(axi_req)))
+    `logLevel( bridge, 0, $format("Axi2AxiL: Axi4-Write:",fshow_axi4_wr_addr(axi_req)))
+    `logLevel( bridge, 0, $format("Axi2AxiL: Axi4-Write: byte_index:%d",axi4_byte_shift, fshow_axi4_wr_data(axi_wreq)))
     `logLevel( bridge, 0, $format("Axi2Apb: APB-Req  :",fshow_apb_req(apb_request)))
   endrule:rl_write_frm_axi
   
