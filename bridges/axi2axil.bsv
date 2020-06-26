@@ -335,9 +335,13 @@ module mkaxi2axil(Ifc_axi2axil#(axi_id, axi_addr, axi_data, axil_addr, axil_data
   rule rl_write_frm_axi (rg_wr_state == Idle);
     let axi_req  <- pop_o(axi_xactor.fifo_side.o_wr_addr);
     let axi_wreq = axi_xactor.fifo_side.o_wr_data.first;
-    Bit#(axi_byte_size) axi4_byte_index = truncate(axi_req.awaddr);
-    Bit#(axil_bytes) axil_wstrb = truncate(axi_wreq.wstrb >> axi4_byte_index);
-    Bit#(axil_data) axil_data_ = truncate(axi_wreq.wdata >> {axi4_byte_index, 3'b0});
+    Bit#(8) request_size = ('b1) << axi_req.awsize;
+    Bit#(axi_byte_size) axi4_byte_access = truncate(axi_req.awaddr);
+    Bit#(axi_byte_size) axi4_byte_shift = (v_bytes_ratio > 1 && 
+                    request_size <= fromInteger(v_axil_bytes) && 
+                    axi4_byte_access > fromInteger(v_axil_bytes-1) )? axi4_byte_access : 0;
+    Bit#(axil_bytes) axil_wstrb = truncate(axi_wreq.wstrb >> axi4_byte_shift);
+    Bit#(axil_data) axil_data_ = truncate(axi_wreq.wdata >> {axi4_byte_shift, 3'b0});
     Axi4l_wr_addr #(axil_addr, user) axil_req = Axi4l_wr_addr {awaddr : truncate(axi_req.awaddr),
                                                                awprot : axi_req.awprot,
                                                                awuser : axi_req.awuser};
@@ -350,7 +354,6 @@ module mkaxi2axil(Ifc_axi2axil#(axi_id, axi_addr, axi_data, axil_addr, axil_data
     rg_wr_state      <= Response;
     rg_accum_err     <= axi4_resp_okay;
     if (v_bytes_ratio > 1 ) begin
-      Bit#(8) request_size = ('b1) << axi_req.awsize;
       Bit#(axil_bytes) mask = '1;
       if(request_size > fromInteger(v_axil_bytes)) begin
         rg_wr_req_beat   <= axi_req.awlen + 1;
@@ -374,7 +377,9 @@ module mkaxi2axil(Ifc_axi2axil#(axi_id, axi_addr, axi_data, axil_addr, axil_data
       axi_xactor.fifo_side.o_wr_data.deq;
     end
     `logLevel( bridge, 0, $format("Axi2AxiL: Axi4-Write:",fshow_axi4_wr_addr(axi_req)))
+    `logLevel( bridge, 0, $format("Axi2AxiL: Axi4-Write: byte_index:%d",axi4_byte_shift, fshow_axi4_wr_data(axi_wreq)))
     `logLevel( bridge, 0, $format("Axi2AxiL: Axi4-Lite-Write  :",fshow_axi4l_wr_addr(axil_req)))
+    `logLevel( bridge, 0, $format("Axi2AxiL: Axi4-Lite-Write  :",fshow_axi4l_wr_data(axil_req_data)))
   endrule:rl_write_frm_axi
   
   /*doc:rule: this rule will generate new addresses based on burst-mode and lenght and send write
