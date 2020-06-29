@@ -642,13 +642,13 @@ module mkaxi4_fabric_3 #(
   
   // read transaction
   // FIFOS to keep the record of slaves which are transacting on same arid
-  Vector#(tn_num_masters,Vector#(n,FIFOF #(Bit #(log_ns)))) sids_of_arid <- replicateM(replicateM (mkSizedFIFOF (8)));
+  Vector#(tn_num_masters,Vector#(n,FIFOF #(Bit #(log_ns)))) ff_sids_of_arid <- replicateM(replicateM (mkSizedFIFOF (8)));
   
   // record of currently utilized arids
-  Vector#(tn_num_masters,Vector#(n,Reg#(Bit #(wd_id)))) arid_in_flight <- replicateM(replicateM(mkReg(0)));
+  Vector#(tn_num_masters,Vector#(n,Reg#(Bit #(wd_id)))) rg_rd_arid_in_flight <- replicateM(replicateM(mkReg(0)));
   
   // record of available space for arids
-  Vector#(tn_num_masters,Vector#(n,Reg#(Bit #(TLog #(n))))) free_arids <- replicateM(replicateM(mkReg(0)));
+  Vector#(tn_num_masters,Vector#(n,Reg#(Bit #(TLog #(n))))) rg_rd_free_arids <- replicateM(replicateM(mkReg(0)));
 
   // ----------------
   // Write-transaction book-keeping
@@ -699,19 +699,20 @@ module mkaxi4_fabric_3 #(
   // BEHAVIOR
 
   // ----------------------------------------------------------------
-  // function to search the arid in the list of arid_in_flight
+  // a struct type for returning the arid information from arid list
   typedef struct{
   	Bit#(TMax#(TLog #(n)),1) index;
   	Bool 			  valid;
   } Valid_arid deriving(Bits , FShow);
   
-  function Valid_arid is_arid_in_flight(Bit#(wd_id) arid, Integer mi);
+  // function to search the given arid in the list of arids in flight
+  function Valid_arid fn_is_arid_inflight(Bit#(wd_id) arid, Integer mi);
     for(Integer i = 0; i < n; i = i + 1) begin
-      if(arid == arid_in_flight[mi][i])
+      if(arid == rg_rd_arid_in_flight[mi][i])
         return(Valid_arid {index: fromInteger(i),valid : True});
     end
     return(Valid_arid {index: 0,valid : False});
-  endfunction:is_arid_in_flight
+  endfunction:fn_is_arid_inflight
   
   // ----------------------------------------------------------------
   // Predicates to check if master I has transaction for slave J
@@ -862,12 +863,12 @@ module mkaxi4_fabric_3 #(
       rule rl_rd_xaction_master_to_slave (fv_mi_has_rd_for_sj (mi, sj) && wr_rd_grant[sj][mi] && read_slave[sj] == 1 );
 	   
 	      let arid_ = xactors_from_masters [mi].fifo_side.o_wr_addr.first.arid;
-	      let is_present = is_arid_in_flight(arid_,mi);
-	      
+	      let is_present = fn_is_arid_inflight(arid_,mi);
+	      //proceed for transaction only if arid is legal
 	      if(is_present.valid && sids_of_arid[mi][is_present.index].notFull) begin
 	           Axi4_rd_addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      	   
-	      	   sids_of_arid[mi][is_present.index].enq(fromInteger(sj));
+	      	   ff_sids_of_arid [mi][is_present.index].enq(fromInteger(sj));
 	      	   xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      	   f_m_rd_route_info [sj].enq (fromInteger (mi));
 	      	   f_s_rd_route_info [mi].enq (fromInteger (sj));
@@ -880,11 +881,12 @@ module mkaxi4_fabric_3 #(
 	      	   `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
 	      	   `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))
 	      end
+	      // if arid is not present and there is a room for request 
 	      if(!is_present.valid) begin
 	           Axi4_rd_addr #(wd_id, wd_addr, wd_user) a <- pop_o (xactors_from_masters [mi].fifo_side.o_rd_addr);
 	      	   
-	      	   arid_in_flight[mi][ free_arids[mi][1] ] <= arid_;
-	      	   sids_of_arid[mi][ free_arids[mi][1] ].enq(fromInteger(sj));
+	      	   rg_rd_arid_in_flight[mi][ rg_rd_free_arids[mi][0] ] <= arid_;
+	      	   ff_sids_of_arid [mi][ rg_rd_free_arids[mi][0] ].enq(fromInteger(sj));
 	      	   xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
 	      	   f_m_rd_route_info [sj].enq (fromInteger (mi));
 	      	   f_s_rd_route_info [mi].enq (fromInteger (sj));
@@ -897,18 +899,6 @@ module mkaxi4_fabric_3 #(
 	      	   `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
 	      	   `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))
 	      end
-	      
-	    /*xactors_to_slaves [sj].fifo_side.i_rd_addr.enq (a);
-	      f_m_rd_route_info [sj].enq (fromInteger (mi));
-	      f_s_rd_route_info [mi].enq (fromInteger (sj));
-	      if (&fixed_priority_rd == 0) begin
-  	      if (mi == num_masters - 1)
-	          rg_rd_master_select[sj] <= 0;
-	        else
-	          rg_rd_master_select[sj] <= fromInteger(mi+1);
-	      end
-	      `logLevel( fabric, 0, $format("FABRIC: RDA: master[%2d] -> slave[%2d]",mi, sj))
-	      `logLevel( fabric, 0, $format("FABRIC: RDA: ", fshow(a)))*/
 	    endrule: rl_rd_xaction_master_to_slave
 
   // Rd responses from slaves to masters (R channel)
