@@ -12,8 +12,8 @@ to one or more AXI4 compliant slave devices. It includes the following features:
 - The data widths supported are: 32, 64, 128, 256, 512 and 1024.
 - Provides a configurable size of user-space on each channel.
 - Supports aligned and unaligned transfers.
-- Supports read-only and write-only master-slave combinations resulting in reduced overheads.
-- Supports static and round robin priority arbitration amongst masters
+- Support read-only and write-only master-slave combinations resulting in reduced overheads.
+- Support for static and round robin priority arbitration amongst masters
 
 **AXI4 Interconnect Limitations**
   - AXI4 Quality of Service (QoS) signals do not influence arbitration priority within the crossbar
@@ -21,10 +21,10 @@ to one or more AXI4 compliant slave devices. It includes the following features:
   - The cross bar will not time-out if any destination of the cross-bar stalls indefinitely.
   - Low power interface features are not currently supported.
   - ID based re-ordering is not supported.
-  - Data interleaving is not supported in this version of the implementation
+  - Data interleaving is not supported by the version of the implementation
 
-Henceforth, ``M`` represents the number of master-devices 
-and ``S`` would represent the number of slave-devices connected to the
+From henceforth, ``M`` would represent the number of masters connected to the
+cross-bar and ``S`` would represent the number of slaves connected to the
 cross-bar.
 
 .. _axi4_parameters:
@@ -45,9 +45,9 @@ The cross-bar interfaces are parameterized with the following parameters:
 
 .. table:: AXI4 Cross-bar Interface Parameters
 
-  ==================  ===============
+  ==================  ===========
   Parameter Name      Description
-  ==================  ===============
+  ------------------  -----------
   ``wd_id``           size of the id fields in all the channels.
   ``wd_addr``         size of the address fields in the read-address and write-address channels
   ``wd_data``         size of the data fields in the read-response and write-data channels
@@ -56,10 +56,10 @@ The cross-bar interfaces are parameterized with the following parameters:
                       this fabric.
   ``tn_num_slaves``   indicates the number of slaves that will be connected to
                       this fabric.
-  ==================  ===============
+  ==================  ===========
 
 While the above parameters control the interface signals of the cross-bar, the
-following arguments need to be provided to the module instance to control the arbitration
+following need to be provided to the module instance to control the arbitration
 and connection:
 
 .. tabularcolumns:: |l|L|
@@ -71,23 +71,23 @@ and connection:
   ===================== =============================================================================
   Parameter Name        Description
   --------------------- -----------------------------------------------------------------------------
-  ``fn_rd_memory_map``  A function that provides a memory map of the address-space for the read
+  ``fn_rd_memory_map``  A function which provides a memory map of the address-space for the read
                         channel. It takes an address as an argument and returns a slave-number. 
-  ``fn_wr_memory_map``  A function that provides a memory map of the address-space for the write. 
+  ``fn_wr_memory_map``  A function which provides a memory map of the address-space for the write. 
                         channel. It takes an address as an argument and returns a slave-number. 
-  ``read_slave``        A mask vector of size ``S`` that indicates if a particular slave has read support
-                        or not.
-  ``write_slave``       A mask vector of size ``S`` that indicates if a particular slave has write support
-                        or not.
-  ``fixed_priority_rd`` A vector of size ``M`` that indicates if the respective master has fixed
+  ``read_slave``        An ``S`` sized mask vector indicating if a particular slave has read support
+                        or not
+  ``write_slave``       An ``S`` sized mask vector indicating if a particular slave has write support
+                        or not
+  ``fixed_priority_rd`` An ``M`` sized vector which indicates if the respective master has fixed
                         priority or participates in round-robin arbitration on the read channel. 
-                        Setting a bit to 1 indicates that the master has fixed priority, while setting it 
-                        to 0 implies that it participates in round-robin arbitration with other masters 
+                        Setting a bit to 1 indicates the master has fixed priority, while setting it 
+                        to 0 would mean it participates in round-robin arbitration with other masters 
                         who have their bits set to 0.
-  ``fixed_priority_wr`` A vector of size``M`` that indicates if the respective master has fixed
+  ``fixed_priority_wr`` An ``M`` sized vector which indicates if the respective master has fixed
                         priority or participates in round-robin arbitration on the write channel. 
-                        Setting a bit to 1 indicates that the master has fixed priority, while setting it 
-                        to 0 implies that it participates in round-robin arbitration with other masters 
+                        Setting a bit to 1 indicates the master as fixed priority, while setting it 
+                        to 0 would mean it participates in round-robin arbitration with other masters 
                         who have their bits set to 0.
   ===================== =============================================================================
 
@@ -104,20 +104,21 @@ Theory of Operation
 
 Following is the convention/glossary of terms that are used in the following sections:
 
-  * **AR Channel**: refers to the read address channel of the AXI4 protocol
-  * **AW Channel**: refers to the write address channel of the AXI4 protocol
-  * **W  Channel**: refers to the write data channel of the AXI4 protocol
-  * **R  Channel**: refers to the read data channel of the AXI4 protocol
-  * **B  Channel**: refers to the write response channel of the AXI4 protocol
+  * **AR Channel**: refers to the Read address channel of the AXI4 protocol
+  * **AW Channel**: refers to the Write address channel of the AXI4 protocol
+  * **W  Channel**: refers to the Write data channel of the AXI4 protocol
+  * **R  Channel**: refers to the Read data channel of the AXI4 protocol
+  * **B  Channel**: refers to the Write response channel of the AXI4 protocol
 
 .. _axi4xbar_masterslave_ids:
 
 Master/Slave IDs
 ----------------
 
-As per the AXI4 standard, it is recommended that when a master is connected to an interconnect, 
-the interconnect appends additional bits to the *ARID*, *AWID* and *WID* fields that are unique to that 
-master device, as this simplifies routing of slave responses.
+As per the AXI4 document, it is recommended that when a master is connected to an interconnect, 
+the interconnect appends additional bits to the ARID, AWID and WID fields that are unique to that 
+master device. By doing so, it is easy to route the response from the slave devices to simply
+looking up these extra bits in the ID fields. 
 
 However, in this implementation we do not append any such
 bits to the ID fields as will be clear from :numref:`axi4xbar_routing_transactions`. The implementation
@@ -136,29 +137,29 @@ Transactors
 
    Master and Slave Transactors used within the AXI4 Crossbar
 
-The cross-bar internally instantiates ``M`` slave transactors and ``S``
+The cross-bar internally instantiates ``M`` slave transactors and the ``S``
 master transactors. These transactors provide an AXI4 interface on one side (driving the external
-signals of the cross-bar) and a FIFO like interface on the other side. 
+signals of the cross-bar) and a FIFO like interface on the other side (internally available). 
 The ``M`` slave transactors provide an AXI4
 slave interface externally which are to be connected to ``M`` master devices like DMA masters, cache
-masters, etc. The ``S`` master transactors provide an AXI4 master interface externally, which are to
-be connected to slave devices like, UART, SPI, Memory controllers, etc. 
+masters, etc. The ``S`` master transactors provide an AXI4 master interface externally which are to
+be connected to slave devices like, uart, spi, memory controllers, etc. 
 
 Each of these transactors internally include a two entry FIFO on each of the five AXI4
-channels. For the slave transactors, the FIFOs on the *AW*, *W* and *AR* 
+channels. For the slave transactors, the FIFOs on the AW, W and AR 
 channels are enqueued when the corresponding master devices drive valid transactions on these
 channels. We will refer to these set of FIFOs as **axi-side** FIFOs.
-The FIFOs on the *R* and *B* channels are enqued by logic within the
+The FIFOs on the R and B channels are enqued by logic within the
 interconnect and will be refered to as **xbar-side** FIFOs. The axi-side and xbar-side fifos 
-for a master transactor are interchanged as compared to the slave transactor. 
+for a master transacto are interchanged as compared to the slave transactor. 
 :numref:`axi4xbar_img_transactors` shows the interface signals and the placement of these FIFOs for the 
 master and slave trasactors.
 
-When a master device initiates a new trasaction on the *AR*, *AW* or *W* channels the corresponding axi-side
-FIFOs hold a valid entry for routing within the crossbar interconnect in the immediate cycle. 
-Similarly, when the  crossbar routes an *R* or *B* packet to the corresponding xbar-side FIFOs of the
+When a master device drives a new trasaction on the AR, AW or W channels the corresponding axi-side
+FIFOs hold a valid entry, for routing within the crossbar interconnect,  in the immediate cycle. 
+Similarly, when the  crossbar routes a R or B packet to the corresponding xbar-side FIFOs of the
 transactor, the master device will see these transactions in the immediate cycle.
-:numref:`axi4xbar_rd_addr_wave` shows the behavior in case of the *AR* channel being driven by a master device,
+:numref:`axi4xbar_rd_addr_wave` shows the behavior in case of the AR channel being driven by a master device
 and the corresponding axi-side FIFO in the connected slave transactor. 
 
 
@@ -183,6 +184,8 @@ Rest of the FIFOs in the slave transactor work analogously to the above behavior
 The next section will discuss how transactions received on the axi-side FIFOs are
 routed to their destination through the crossbar.
 
+.. todo:: provide a note on the RTL names of the above data structures.
+
 .. _axi4xbar_routing_transactions:
 
 Transaction Routing
@@ -198,23 +201,22 @@ Transaction Routing
 
 Once the transactions from the master/slave devices are latched into the corresponding axi-side
 FIFOs, they need to be routed through the crossbar to their target nodes. It should be noted here
-that the routing logic for the read bus (comprising of the *AR* and *R* channels/packets) is separate
-from the routing logic for the write bus (comprising of the *AW*, *W* and *B* channels/packets) to
+that the routing logic for the read bus (comprising of the AR and R channels/packets) is separate
+from the routing logic for the write bus (comprising of the AW, W and B channels/packets) to
 leverage maximum performance. The next paragraphs will discuss the routing for read and write
 transactions
 
 Read Transactions:
-  Once the *arfifo* in the slave transactors have a valid entry, the target master transactor to which
+  Once the arfifo in the slave transactors have a valid entry, the target master transactor to which
   this transaction needs to be routed is deduced using the ``fn_rd_memory_map`` function provided to
   the design at compile time. However, the salve transactor can only carry out the transfer to the
-  master transactor, if the *arfifo* in the master transactor has atleast one empty slot. 
+  master transactor, if the arfifo in the master transactor has atleast one empty slot. 
   
   It is possible that the slave device connected to the master transactor is busy has not been able
-  to service the pending request(s) that are present in *arfifo* thereby causing it to become full in
-  due course of time.
-  In such a scenario, a new request from a slave
-  transactor can no longer be enqued and thus creates a stall. The slave transactor continues the
-  attempt to make the transfer again in the sub-sequent cycles until success.
+  to service the pending requests present in the arfifo, causing it be come full over time by other
+  requests from different slave transactors. In such a scenario, a new request from a slave
+  transactor can no longer to enqued and thus creates a stall. The slave transactor attempts to make
+  the transfer again the sub-sequent cycles untill success.
 
   .. note:: Transactions sitting in any of the fifos in the transactors, like the case above, can be
      defined as in-flight transactions, which have been received by the master/slave device but have
@@ -231,14 +233,13 @@ Read Transactions:
 
   .. note:: This implementation has a limitation of not supporting interleaving and data reordering,
      and thus slave-devices connected to this crossbar cannot have a re-ordering depth of more than
-     1. i.e. all responses from the particular slave device have to be in the same order of 
-     the requests presented at its port.
+     1. i.e. all responses have to be in order of the requests presented.
 
   These route-info FIFOs are enqueued with the master/slave IDs when a valid transfer between a
   slave transactor ar-fifo and master transactor ar-fifo occurs. 
 
-  Once the master transactor sends an *RLAST* signal on the *R* packet, the corresponding route-info
-  FIFOs are popped (dequeued) allowing the slave/master to serve the next pending transaction in
+  Once the master transactor sends an RLAST signal on the R packet, the corresponding route-info
+  FIFOs are popped (dequeued) allowing the slave/master to serve the next pending transactions in
   order.
 
   :numref:`axi4xbar_rd_routing` shows the above behavior of the read transaction routing happening
@@ -284,18 +285,18 @@ Read Transactions:
     }
 
 Write Transactions:
-  The working of the write transactions is very similar to that of the read transactions, except for the
+  The working of the write transactions is very similar to that the read transaction, except for the
   change that an extra set of route-info FIFOs are maintained on each master and slave transactor
-  for the *W* channel as well. Thus each transactor maintains a
-  route-info FIFO for the *AW* channel and another route-info for the *W* channel. 
+  for the W channel as well. This each transactor, supporting write transactions, maintains a
+  route-info for the AW channel and another route-info for the W channel. 
 
   Therefore, when a valid transfer occurs between the aw-fifo of
-  the slave transactor and the aw-fifo of the master transactor, the *AW* and *W* channel route-info
-  FIFOs of both the transactors are updated. Ths *W* channel route-info FIFOs, ensure that the
+  the slave transactor and the aw-fifo of the master transactor, the AW and W channel route-info
+  FIFOs of both the transactors is updated. Ths W channel route-info FIFOs, ensure that the
   sub-sequent beats of the transaction from the slave transactor are routed to the correct master
   transactor.
 
-  The route-info FIFOs are popped/dequeued when the write response of the *B* channel is received.
+  The route-info FIFOs are popped/dequeued when the write response of the B channel is received.
   :numref:`axi4xbar_wr_routing` shows the behavior of the write transactions through the crossbar.
 
   .. _axi4xbar_wr_routing:
@@ -366,8 +367,8 @@ participate in round-robin arbitration using the ``fixed_priority_*`` parameters
   can participate in round-robin arbitration or vice-versa.
 
 Fixed Priority Arbitration:
-  By default, the arbitration is granted based on the relative priority of the associated IDs of the
-  slave transactors (refer to :numref:`axi4xbar_masterslave_ids` for more details on how IDs are
+  By default, the arbitration is granted based on the relative priority of the associated IDS of the
+  slave transactors (refer to :numref:`axi4xbar_masterslave_ids` for more details on how IDS are
   assigned). A slave transactor with a lower ID has higher priority over a slave transactor with a
   higher ID. 
 
@@ -376,8 +377,7 @@ Round-Robin Arbitration:
   arbitration, whose reset value is 0. The select register indicates the threshold ID value. 
   When a contention occurs, the participating slave transactor whose ID is
   immediately above the select register wins the arbitration. Once a slave transactor is chosen, the
-  select register is updated by a value one greater than the ID of the winning transactor. In case
-  the winning ID is the highest then the value assigned it 0.
+  select register is updated by a value one greater than the ID of the winning transactor.
 
   It is possible, that any point there is a contention amongst slave transactors with fixed
   arbitration and slave transactors configured for round-robin arbitration. In such a case, 
@@ -386,8 +386,8 @@ Round-Robin Arbitration:
   transactors with fixed arbitration have an ID higer than the slave transactor winning the
   round-robin arbitration, then the latter is given access to the master transactor.
 
-  :numref:`axi4xbar_rr_arbitration` Shows how round robin arbitration would work for a crossbar
-  consisting of 2 slave transactors with a select threshold of 1.
+  :numref:`axi4xbar_rr_arbitration` Shows how round robin arbitration would work for a 2 
+  participating slave transactors with a select threshold of 1
 
 .. _axi4xbar_rr_arbitration:
 
@@ -448,7 +448,7 @@ The cross-bar module requires two functions (``fn_rd_memory_map`` and
 provided at design time which are used by the read and write channels to
 identify a target slave-device. The functions should take as input an address of the
 same width : ``wd_addr`` and return a slave-device id number which indicates which one of
-the vectored slave interfaces have been selected for this transaction by the master device. 
+the vectored slave interfaces has been selected for this transaction by the master device. 
 
 Disjoint address spaces selecting the same slave are also allowed. The
 distinction between these address spaces is the responsibility of the slave-device.
@@ -461,63 +461,18 @@ distinction between these address spaces is the responsibility of the slave-devi
 Error signaling
 ---------------
 
-The cross-bar does not internally generate the DECERR, but expects that one of
+The cross-bar does not internally generate the DECERR, it expected that one of
 the ``S`` slaves is an **Error Slave** which is selected for all holes within
 the address maps (applies to both read and write channels) and responds with a DECERR.
 
-.. tip:: When defining the ``fn_wr_memory_map`` and ``fn_rd_memory_map`` functions, its recommended to
+.. tip:: When defining the fn_wr_memory_map and fn_rd_memory_map functions, its recommended to
    assign the error slave ID under last *else* condition of an if-else construct or under the 
    *default* condition of a case statement.
-
-
-Instance Mapping in Verilog
----------------------------
-
-The following provides a mapping between the data structures/elements mentioned above to 
-instances/signals available in the generated Verilog. 
-
-.. note:: The following mapping assumes the instance name of the crossbar to be *fabric*.
-
-Route-Info FIFOs: 
-  The route-info FIFO instances in the slave transactors are named: 
-
-    - ``fabric_f_s_rd_route_info_<num>``
-    - ``fabric_f_s_wd_route_info_<num>``
-    - ``fabric_f_s_wr_route_info_<num>``
-
-  The route-info FIFO instances in the master transactors are named: 
-
-    - ``fabric_f_m_rd_route_info_<num>``
-    - ``fabric_f_m_wd_route_info_<num>``
-    - ``fabric_f_m_wr_route_info_<num>``
-  
-  *<num>* in the above strings should be replaced by the ID of the slave/master transactor assigned at
-  design time.
-
-Channel FIFOs:
-  The various xbar-side and axi-side FIFOs within the slave transactors are named:
-
-    - ``fabric_xactors_from_masters_<num>_f_arfifo``
-    - ``fabric_xactors_from_masters_<num>_f_awfifo``
-    - ``fabric_xactors_from_masters_<num>_f_wfifo``
-    - ``fabric_xactors_from_masters_<num>_f_rfifo``
-    - ``fabric_xactors_from_masters_<num>_f_bfifo``
-  
-  The various xbar-side and axi-side FIFOs within the master transactors are named:
-
-    - ``fabric_xactors_to_slaves_<num>_f_arfifo``
-    - ``fabric_xactors_to_slaves_<num>_f_awfifo``
-    - ``fabric_xactors_to_slaves_<num>_f_wfifo``
-    - ``fabric_xactors_to_slaves_<num>_f_rfifo``
-    - ``fabric_xactors_to_slaves_<num>_f_bfifo``
-  
-  *<num>* in the above strings should be replaced by the ID of the slave/master transactor assigned at
-  design time.
 
 Using the Cross-bar IP
 ======================
 
-The IP is designed in BSV and available at: https://gitlab.com/incoresemi/blocks/fabrics .
+The IP is designed in BSV and available at: https://gitlab.com/incoresemi/blocks/fabrics
 The following steps demonstrate on how to configure and generate verilog RTL of
 the cross-bar IP. 
 
@@ -531,9 +486,8 @@ Configuration and Generation
 
    The IP uses the python based `cogapp tool <https://nedbatchelder.com/code/cog/>`_ to generate bsv files with cofigured instances. 
    Steps to install the required tools to generate the configured IP in verilog RTL can be found 
-   in `Appendix <appendix.html>`_. 
-   If you are using a python virtual environment make sure its activated before proceeding to 
-   the following steps.
+   in `Appendix <appendix.html>`_. Python virtual environment needs to be activated before 
+   proceeding to the following steps.
 
 2. **Clone the repo**:
 
@@ -552,16 +506,14 @@ Configuration and Generation
    Address map should also be specified in this file using the slot-number 
    as the key of the dictionary. Following rules apply to the memory map:
 
-     1. Slot-numbering should be from 0 to ``tn_num_slaves - 1``
+     1. slot-numbering should be from 0 to ``tn_num_slaves - 1``
      2. Each slave can have one of the following access policies: ``read-only``, ``write-only``, 
         ``read-write`` and ``error``. An ``error`` slave need not have the ``base`` and ``bound``
         fields specified.
      3. Atleast one of the slaves should have access as ``error``
-     4. While providing the address based and bounds, remember the base is included and bound is not
-        for the device under consideration
 
 
-4. **Generate Verilog**: Use the following command with required settings to
+4. **Generate Verilog**: use the following command with required settings to
    generate verilog for synthesis/simulation:
 
    .. code:: bash
@@ -570,7 +522,7 @@ Configuration and Generation
    
    The generated verilog file is available in: ``build/hw/verilog/mkaxi4_crossbar.v``
 
-5. **Interface signals**: In the generated verilog, the vectored slave interface
+5. **Interface signals**: in the generated verilog, the vectored slave interface
    signals (to which masters will be connected to) are prefixed with
    ``frm_master_<num>``. The vectored master interface signals (to which slaves
    will be connected to) are prefixed with ``to_slaves_<num>``. Since the IP is a
