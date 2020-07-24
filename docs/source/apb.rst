@@ -52,15 +52,46 @@ and connection:
                         indicating which slave is selected for the transaction.
   ===================== =============================================================================
 
-Micro-Architecture
-==================
+Theory of Operation
+===================
 
 The interconnect implementation is quite simple where, the address presented by the master is used
 to identify which slave is selected and thus the respective PSEL line is asserted to initiate the
-transaction. All other signals from the master are simply broad-case to all the slaves. 
+transaction. All other signals from the master are simply broad-cast to all the slaves. 
 
 Within the vectored master interfaces, all the signals are replicated. The respones from the slave
 devices is routed based on which slave's PSEL is asserted.
+
+Transactors
+-----------
+
+The library provides two transctors: master transactor and slave transactor. The master transactor
+has FIFO like interface on one side to receive request from the a master-device and generate the APB
+master signals on the other side. The slave transactor on the other hand has APB slave interface on
+one side to accept and respond to requests and a FIFO like interface on the other side to interact
+with the slave devices.
+
+
+The master transactor (connected to the master-device externally) can be in one of the three modes: 
+IDLE, SETUP or ACCESS. On reset the transactor is in IDLE mode, willing to accept a new request 
+from the master-device. :ref:`apb_master_states` shows the various modes of operation of the master
+transactor amongst the mentioned modes.
+
+.. _apb_master_states:
+
+.. figure:: _static/apb.png
+   :align: center
+
+   Operating Modes of the master transactor
+
+When a transfer is requested by the master-device, the transactor moves from IDLE mode to the SETUP
+mode and selects the appropriate slave by setting the corresponding PSELx signal. The next clock
+cycle, the transactor moves to the ACCESS mode, where PENABLE is asserted. The ACCESS mode is
+completed only when the PREADY signal from the selected slave is high.
+On completion of the ACCESS mode, if
+a new pending transaction is detected from the master-device, then the transactor moves to SETUP
+mode else goes back to the IDLE mode.
+
 
 Using the Interconnect IP
 =========================
@@ -104,6 +135,8 @@ Configuration and Generation
         ``read-write`` and ``error``. An ``error`` slave need not have the ``base`` and ``bound``
         fields specified.
      3. Atleast one of the slaves should have access as ``error``
+     4. While providing the address based and bounds, remember the base is included and bound is not
+        for the device under consideration
 
 
 4. **Generate Verilog**: use the following command with required settings to

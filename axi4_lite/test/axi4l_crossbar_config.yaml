@@ -33,6 +33,7 @@ fixed_priority_wr: 0b000000
 # define the memory map of the slave devices. 
 # Note: the memory map entries should start from 0 in increasing order.
 # Note: the memory map should contain at least one slave which acts as the error slave. 
+# Note: in the address maps, the base is included and bound is not.
 memory_map:
   0:
     base:  0x2000

@@ -3,6 +3,10 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.1.6] - 2020-06-24
+--------------------
+- updated docs for AXI4-Lite and APB interconnects.
+
 [1.1.5] - 2020-06-26
 --------------------
 
