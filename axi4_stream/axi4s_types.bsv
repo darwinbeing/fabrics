@@ -11,7 +11,7 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 */
-// Copyright (c) 2021 Bluespec, Inc.  All Rights Reserved
+// Copyright (c) 2013-19 Bluespec, Inc.  All Rights Reserved
 
 package axi4s_types;
 
@@ -424,7 +424,55 @@ endmodule: mkaxi4s_master_xactor
 // This uses 1/2 the resources, but introduces scheduling dependencies.
 
 
+module mkaxi4s_master_xactor_2 (Ifc_axi4s_master_xactor #(wd_tdest,wd_tdata, wd_tuser,wd_tid));
 
+
+        // Each crg_full, rg_data pair below represents a 1-element fifo.
+
+        Array #(Reg #(Bool))      crg_axi4s_full <- mkCReg (3, False); 
+        Reg #(Axi4s #(wd_tdest,wd_tdata, wd_tuser,wd_tid))           rg_axi4s <- mkRegU;
+
+	// The following CReg port indexes specify the relative scheduling of:
+	//     {first,deq,notEmpty}    {enq,notFull}    clear
+
+	// TODO: 'deq/enq/clear = 1/2/0' is unusual, but eliminates a
+	// scheduling cycle in Piccolo's DCache.  Normally should be 0/1/2.
+
+	Integer port_deq   = 1;
+	Integer port_enq   = 2;
+	Integer port_clear = 0;
+
+
+       // ----------------------------------------------------------------
+       // INTERFACE
+
+       method Action reset;
+	   crg_axi4s_full [port_clear] <= False;
+       endmethod
+
+   interface axi4s_side = interface Ifc_axi4s_master;
+
+			method Bool           m_tvalid  crg_axi4s_full [port_deq];                                // out
+			method Bit #(8*wd_tdata) m_tdata = rg_axi4s.tdata;                                 // out
+			method Bit #(wd_tdata) m_tstrb = rg_axi4s.tstrb;                                 // out
+			method Bit #(wd_tdata)       m_tkeep = rg_axi4s.tkeep;                                 // out
+			method Bool       m_tlast = rg_axi4s.tlast;		                             // out
+			method Bit#(wd_tid)        m_tid = rg_axi4s.tid;			                          // out
+			method Bit #(wd_tdest)       m_tdest = rg_axi4s.tdest;			                       // out
+			method Bit #(wd_tuser)          m_tuser = rg_axi4s.tuser;			                          // out
+
+			method Action m_tready (Bool tready);    // in
+				if (crg_axi4s_full [port_deq] && tready)        
+					crg_axi4s_full [port_deq] <= False;    		// Dequeue
+			endmethod
+		    endinterface;
+
+   // FIFOF side
+   interface fifo_side = interface Ifc_axi4s_server;
+	   interface i_stream = fn_crg_and_rg_to_FIFOF_I (crg_axi4s_full [port_enq], rg_axi4s);
+   endinterface;
+
+endmodule: mkaxi4s_master_xactor_2
 
 
 
@@ -443,20 +491,22 @@ interface Ifc_axi4s_slave_xactor #(numeric type wd_tdest,
    interface Ifc_axi4s_slave #(wd_tdest,wd_tdata, wd_tuser,wd_tid) axi_side;
 
    // FIFOF side
-   interface FIFOF_O #(AXI4_Stream #(wd_data))          o_stream;
+   interface Ifc_axi4s_client #(wd_tdest,wd_tdata, wd_tuser,wd_tid) o_stream;
+	   interface o_stream = to_FIFOF_O (f_stream);
+   endinterface
 
 endinterface: Ifc_axi4s_slave_xactor
 
 // ----------------------------------------------------------------
 // Slave transactor
 
-module mkaxi4s_slave_xactor (Ifc_axi4s_slave_xactor #(wd_tdest,wd_tdata, wd_tuser,wd_tid));
+module mkaxi4s_slave_xactor #(parameter QueueSize sz) (Ifc_axi4s_slave_xactor #(wd_tdest,wd_tdata, wd_tuser,wd_tid));
 
    Bool unguarded = True;
    Bool guarded   = False;
 
    // These FIFOs are guarded on BSV side, unguarded on AXI side
-   FIFOF #(Axi4s #(wd_tdest,wd_tdata, wd_tuser,wd_tid))          f_stream <- mkGFIFOF (unguarded, guarded);
+   FIFOF #(Axi4s #(wd_tdest,wd_tdata, wd_tuser,wd_tid))          f_stream <- mkGSizedFIFOF (unguarded, guarded,sz.wr_req_depth);
 
    // ----------------------------------------------------------------
    // INTERFACE
@@ -488,10 +538,72 @@ module mkaxi4s_slave_xactor (Ifc_axi4s_slave_xactor #(wd_tdest,wd_tdata, wd_tuse
 			       endinterface;
 
    // FIFOF side
-   interface o_stream = to_FIFOF_O (f_stream);
+   interface o_stream = interface Ifc_axi4s_client
+				interface to_FIFOF_O (f_stream);
+			endinterface;
 
 endmodule: mkaxi4s_slave_xactor
 
 // ================================================================
 
-endpackage
+// ----------------------------------------------------------------
+// Slave transactor
+// This version uses crgs and regs instead of FIFOFs.
+// This uses 1/2 the resources, but introduces scheduling dependencies.
+
+module mkaxi4s_slave_xactor_2 (Ifc_axi4s_slave_xactor #(wd_tdest,wd_tdata, wd_tuser,wd_tid));
+
+        // Each crg_full, rg_data pair below represents a 1-element fifo.
+
+        Array #(Reg #(Bool))      crg_axi4s_full <- mkCReg (3, False); 
+        Reg #(Axi4s #(wd_tdest,wd_tdata, wd_tuser,wd_tid))           rg_axi4s <- mkRegU;
+
+	// The following CReg port indexes specify the relative scheduling of:
+	//     {first,deq,notEmpty}    {enq,notFull}    clear
+
+	// TODO: 'deq/enq/clear = 1/2/0' is unusual, but eliminates a
+	// scheduling cycle in Piccolo's DCache.  Normally should be 0/1/2.
+
+	Integer port_deq   = 1;
+	Integer port_enq   = 2;
+	Integer port_clear = 0;
+
+	// ----------------------------------------------------------------
+	// INTERFACE
+
+	method Action reset;
+		crg_axi4s_full[port_clear] <= False;
+	endmethod
+
+	// AXI side
+
+	interface axi_side = interface Ifc_axi4s_slave; 
+				  
+			   method Action m_tvalid (Bool           tvalid,
+						   Bit #(wd_data) tdata,
+							Bit#(wd_data) tstrb,
+						   Bit #(wd_tdata) tkeep,
+						   Bool tlast,
+							Bit #(wd_tid) tid,
+							Bit #(wd_tdata) tdest,
+							Bit #(wd_tuser) tuser);
+				     if (tvalid && (!crg_axi4s_full[enq])) begin
+					crg_axi4s_full[port_enq] <= True;
+					rg_axi4s <= Axi4s {tdata : tdata, tstrb : tstrb, tkeep : tkeep, tlast : tlast, tid: tid, tdest : tdest, tuser : tuser};
+					end
+		           endmethod
+
+				  method Bool m_tready;
+				     return (!crg_axi4s_full[enq]);
+				  endmethod
+
+			       endinterface;
+
+   // FIFOF side
+   interface o_stream = interface Ifc_axi4s_client
+				interface f_stream = fn_crg_and_rg_to_FIFOF_O (crg_axi4s_full [port_enq], rg_axi4s);
+			endinterface;
+
+endmodule: mkaxi4s_slave_xactor_2
+
+endpackage : axi4s_types
