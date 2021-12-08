@@ -3,6 +3,10 @@ CHANGELOG
 
 This project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
 
+[1.2.0] - 2021-08-21
+--------------------
+- adding support for AXI4-Stream interconnect
+
 [1.1.6] - 2020-06-24
 --------------------
 - updated docs for AXI4-Lite and APB interconnects.
